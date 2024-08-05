@@ -110,8 +110,8 @@ resource "azuredevops_build_definition" "this" {
 
 data "azuredevops_agent_queue" "this" {
   project_id = azuredevops_project.this.id
-  name = module.managed_devops_pool.name
-  depends_on = [ module.managed_devops_pool ]
+  name       = module.managed_devops_pool.name
+  depends_on = [module.managed_devops_pool]
 }
 
 resource "azuredevops_pipeline_authorization" "this" {
@@ -151,7 +151,7 @@ resource "azurerm_dev_center" "this" {
   name                = "dc-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  depends_on = [ azapi_resource_action.resource_provider_registration ]
+  depends_on          = [azapi_resource_action.resource_provider_registration]
 }
 
 resource "azurerm_dev_center_project" "this" {
@@ -163,19 +163,19 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                       = "../.."
-  resource_group_name = azurerm_resource_group.this.name
-  location                                     = azurerm_resource_group.this.location
-  name = random_string.name.result
+  source                         = "../.."
+  resource_group_name            = azurerm_resource_group.this.name
+  location                       = azurerm_resource_group.this.location
+  name                           = random_string.name.result
   dev_center_project_resource_id = azurerm_dev_center_project.this.id
   organization_profile = {
     organizations = [{
-      name = var.azure_devops_organization_name
+      name     = var.azure_devops_organization_name
       projects = [azuredevops_project.this.name]
     }]
   }
-  tags                                         = local.tags
-  depends_on                                   = [ azapi_resource_action.resource_provider_registration ]
+  tags       = local.tags
+  depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
 output "managed_devops_pool_id" {
@@ -202,7 +202,7 @@ locals {
     "westeurope" # Capacity issues
   ]
   included_regions = [
-    "australiaeast","southeastasia","westus","westus2","westus3","brazilsouth","centralindia","eastasia","eastus","eastus2","canadacentral","centralus","northcentralus","southcentralus","westcentralus","northeurope","westeurope","uksouth"
+    "australiaeast", "southeastasia", "westus", "westus2", "westus3", "brazilsouth", "centralindia", "eastasia", "eastus", "eastus2", "canadacentral", "centralus", "northcentralus", "southcentralus", "westcentralus", "northeurope", "westeurope", "uksouth"
   ]
   regions         = [for region in module.regions.regions : region.name if !contains(local.excluded_regions, region.name) && contains(local.included_regions, region.name)]
   selected_region = "eastus" # local.regions[random_integer.region_index.result]

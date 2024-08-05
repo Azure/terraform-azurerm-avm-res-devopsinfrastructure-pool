@@ -16,12 +16,12 @@ resource "azapi_resource" "managed_devops_pool" {
         sku = {
           name = var.fabric_profile_sku_name
         }
-        images = [ for image in var.fabric_profile_images : {
+        images = [for image in var.fabric_profile_images : {
           wellKnownImageName = image.well_known_image_name
-          aliases = image.aliases
-          buffer = image.buffer
-          resourceId = image.resource_id
-        } ]
+          aliases            = image.aliases
+          buffer             = image.buffer
+          resourceId         = image.resource_id
+        }]
 
         networkProfile = var.subnet_id != null ? {
           subnetId = var.subnet_id
@@ -31,12 +31,12 @@ resource "azapi_resource" "managed_devops_pool" {
         }
         storageProfile = {
           osDiskStorageAccountType = var.fabric_profile_os_disk_storage_account_type
-          dataDisks                = [ for data_disk in var.fabric_profile_data_disks : {
-            diskSizeGiB = data_disk.disk_size_gigabytes
-            caching = data_disk.caching
-            driveLetter = data_disk.drive_letter
+          dataDisks = [for data_disk in var.fabric_profile_data_disks : {
+            diskSizeGiB        = data_disk.disk_size_gigabytes
+            caching            = data_disk.caching
+            driveLetter        = data_disk.drive_letter
             storageAccountType = data_disk.storage_account_type
-          } ]
+          }]
         }
         kind = "Vmss"
       }

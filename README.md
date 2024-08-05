@@ -1,30 +1,14 @@
 <!-- BEGIN_TF_DOCS -->
-# terraform-azurerm-avm-template
+# Azure Verified Module for Managed DevOps Pools
 
-This is a template repo for Terraform Azure Verified Modules.
-
-Things to do:
-
-1. Set up a GitHub repo environment called `test`.
-1. Configure environment protection rule to ensure that approval is required before deploying to this environment.
-1. Create a user-assigned managed identity in your test subscription.
-1. Create a role assignment for the managed identity on your test subscription, use the minimum required role.
-1. Configure federated identity credentials on the user assigned managed identity. Use the GitHub environment.
-1. Search and update TODOs within the code and remove the TODO comments once complete.
-
-> [!IMPORTANT]
-> As the overall AVM framework is not GA (generally available) yet - the CI framework and test automation is not fully functional and implemented across all supported languages yet - breaking changes are expected, and additional customer feedback is yet to be gathered and incorporated. Hence, modules **MUST NOT** be published at version `1.0.0` or higher at this time.
->
-> All module **MUST** be published as a pre-release version (e.g., `0.1.0`, `0.1.1`, `0.2.0`, etc.) until the AVM framework becomes GA.
->
-> However, it is important to note that this **DOES NOT** mean that the modules cannot be consumed and utilized. They **CAN** be leveraged in all types of environments (dev, test, prod etc.). Consumers can treat them just like any other IaC module and raise issues or feature requests against them as they learn from the usage of the module. Consumers should also read the release notes for each version, if considering updating to a more recent version of a module to see if there are any considerations or breaking changes etc.
+This module deploys and configures Managed DevOps Pools.
 
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
 
@@ -38,7 +22,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azapi_resource.mdp](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
+- [azapi_resource.managed_devops_pool](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
@@ -52,36 +36,9 @@ The following resources are used by this module:
 
 The following input variables are required:
 
-### <a name="input_devCenterProjectResourceId"></a> [devCenterProjectResourceId](#input\_devCenterProjectResourceId)
+### <a name="input_dev_center_project_resource_id"></a> [dev\_center\_project\_resource\_id](#input\_dev\_center\_project\_resource\_id)
 
-Description: The resource ID of the Dev Center project.
-
-Type: `string`
-
-### <a name="input_fabricProfileImages"></a> [fabricProfileImages](#input\_fabricProfileImages)
-
-Description: The list of images to use for the fabric profile.
-
-Type:
-
-```hcl
-list(object({
-    resourceId         = optional(string)
-    wellKnownImageName = optional(string)
-    buffer             = string
-    aliases            = list(string)
-  }))
-```
-
-### <a name="input_fabricProfileOsDiskStorageAccountType"></a> [fabricProfileOsDiskStorageAccountType](#input\_fabricProfileOsDiskStorageAccountType)
-
-Description: The storage account type for the OS disk.
-
-Type: `string`
-
-### <a name="input_fabricProfileSkuName"></a> [fabricProfileSkuName](#input\_fabricProfileSkuName)
-
-Description: The SKU name of the fabric profile.
+Description: (Required) The resource ID of the Dev Center project.
 
 Type: `string`
 
@@ -91,19 +48,13 @@ Description: Azure region where the resource should be deployed.
 
 Type: `string`
 
-### <a name="input_maximumConcurrency"></a> [maximumConcurrency](#input\_maximumConcurrency)
-
-Description: The maximum number of agents that can run concurrently.
-
-Type: `number`
-
 ### <a name="input_name"></a> [name](#input\_name)
 
 Description: Name of the pool. It needs to be globally unique for each Azure DevOps Organization.
 
 Type: `string`
 
-### <a name="input_organizationProfile"></a> [organizationProfile](#input\_organizationProfile)
+### <a name="input_organization_profile"></a> [organization\_profile](#input\_organization\_profile)
 
 Description: An object representing the configuration for an organization profile, including organizations and permission profiles.
 
@@ -120,15 +71,18 @@ Type:
 
 ```hcl
 object({
+    kind = optional(string, "AzureDevOps")
     organizations = list(object({
       name        = string
       projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
       parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
     }))
-    permission_profile = object({
-      kind   = string
+    permission_profile = optional(object({
+      kind   = optional(string, "CreatorOnly")
       users  = optional(list(string), null)
       groups = optional(list(string), null)
+      }), {
+      kind = "CreatorOnly"
     })
   })
 ```
@@ -143,7 +97,7 @@ Type: `string`
 
 The following input variables are optional (have default values):
 
-### <a name="input_agentProfileGracePeriodTimeSpan"></a> [agentProfileGracePeriodTimeSpan](#input\_agentProfileGracePeriodTimeSpan)
+### <a name="input_agent_profile_grace_period_time_span"></a> [agent\_profile\_grace\_period\_time\_span](#input\_agent\_profile\_grace\_period\_time\_span)
 
 Description: How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`.
 
@@ -151,7 +105,7 @@ Type: `string`
 
 Default: `null`
 
-### <a name="input_agentProfileKind"></a> [agentProfileKind](#input\_agentProfileKind)
+### <a name="input_agent_profile_kind"></a> [agent\_profile\_kind](#input\_agent\_profile\_kind)
 
 Description: The kind of agent profile.
 
@@ -159,7 +113,7 @@ Type: `string`
 
 Default: `"Stateless"`
 
-### <a name="input_agentProfileMaxAgentLifetime"></a> [agentProfileMaxAgentLifetime](#input\_agentProfileMaxAgentLifetime)
+### <a name="input_agent_profile_max_agent_lifetime"></a> [agent\_profile\_max\_agent\_lifetime](#input\_agent\_profile\_max\_agent\_lifetime)
 
 Description: The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`.
 
@@ -167,24 +121,28 @@ Type: `string`
 
 Default: `null`
 
-### <a name="input_agentProfileResourcePredictionProfile"></a> [agentProfileResourcePredictionProfile](#input\_agentProfileResourcePredictionProfile)
+### <a name="input_agent_profile_resource_prediction_profile"></a> [agent\_profile\_resource\_prediction\_profile](#input\_agent\_profile\_resource\_prediction\_profile)
 
-Description: The resource prediction profile for the agent.
+Description: The resource prediction profile for the agent, a.k.a `Stand by agent mode`, supported values are 'Off', 'Manual', 'Automatic', defaults to 'Off'.
 
 Type: `string`
 
-Default: `"None"`
+Default: `"Off"`
 
-### <a name="input_agentProfileResourcePredictionProfileAutomatic"></a> [agentProfileResourcePredictionProfileAutomatic](#input\_agentProfileResourcePredictionProfileAutomatic)
+### <a name="input_agent_profile_resource_prediction_profile_automatic"></a> [agent\_profile\_resource\_prediction\_profile\_automatic](#input\_agent\_profile\_resource\_prediction\_profile\_automatic)
 
 Description: The automatic resource prediction profile for the agent.
+
+The object can have the following attributes:
+- `kind` - (Required) The kind of prediction profile. Default is "Automatic".
+- `prediction_preference` - (Required) The preference for resource prediction. Supported values are `Balanced`, `MostCostEffective`, `MoreCostEffective`, `MorePerformance`, and `BestPerformance`.
 
 Type:
 
 ```hcl
 object({
-    kind                 = string
-    predictionPreference = string
+    kind                  = string
+    prediction_preference = string
   })
 ```
 
@@ -193,11 +151,11 @@ Default:
 ```json
 {
   "kind": "Automatic",
-  "predictionPreference": "Balanced"
+  "prediction_preference": "Balanced"
 }
 ```
 
-### <a name="input_agentProfileResourcePredictionProfileManual"></a> [agentProfileResourcePredictionProfileManual](#input\_agentProfileResourcePredictionProfileManual)
+### <a name="input_agent_profile_resource_prediction_profile_manual"></a> [agent\_profile\_resource\_prediction\_profile\_manual](#input\_agent\_profile\_resource\_prediction\_profile\_manual)
 
 Description: The manual resource prediction profile for the agent.
 
@@ -217,80 +175,76 @@ Default:
 }
 ```
 
-### <a name="input_agentProfileResourcePredictionsManual"></a> [agentProfileResourcePredictionsManual](#input\_agentProfileResourcePredictionsManual)
+### <a name="input_agent_profile_resource_predictions_manual"></a> [agent\_profile\_resource\_predictions\_manual](#input\_agent\_profile\_resource\_predictions\_manual)
 
 Description: An object representing manual resource predictions for agent profiles, including time zone and optional daily schedules.
 
-- `timeZone` - (Required) The time zone for the agent profile.
-- `sunday` - (Optional) An object representing the schedule for Sunday. Defaults to `{}` which means standby agents will be set to 0 for Sunday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `monday` - (Optional) An object representing the schedule for Monday. Defaults to `{}` which means standby agents will be set to 0 for Monday.
-  - `startTime` - (Required) The start time for the schedule
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule, if not set, it will use the `var.maximumConcurrency` value.
-- `tuesday` - (Optional) An object representing the schedule for Tuesday. Defaults to `{}` which means standby agents will be set to 0 for Tuesday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `wednesday` - (Optional) An object representing the schedule for Wednesday. Defaults to `{}` which means standby agents will be set to 0 for Wednesday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `thursday` - (Optional) An object representing the schedule for Thursday. Defaults to `{}` which means standby agents will be set to 0 for Thursday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `friday` - (Optional) An object representing the schedule for Friday. Defaults to `{}` which means standby agents will be set to 0 for Friday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `saturday` - (Optional) An object representing the schedule for Saturday. Defaults to `{}` which means standby agents will be set to 0 for Saturday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `time_zone` - (Optional) The time zone for the agent profile. E.g. "Eastern Standard Time".
+- `days_data` - (Optional) A list representing the manual schedules
+
+The `days_data` list should contain one or seven maps. Supply one to apply the same schedule each day. Supply seven for a different schedule each day.
+
+For example, to set the schedule for every day to scale to one agent at 8:00 AM and scale down to zero agents at 5:00 PM, you would use the following configuration:
+
+```hcl
+agent_profile_resource_predictions_manual = {
+  time_zone = "Eastern Standard Time"
+  days_data = [
+    {
+      "08:00:00" = 1
+      "17:00:00" = 0
+    }
+  ]
+}
+```
+
+To set a different schedule for each day, you would use the following configuration:
+
+```hcl
+agent_profile_resource_predictions_manual = {
+  time_zone = "Eastern Standard Time"
+  days_data = [
+    # Sunday
+    {}, # Empty map to skip Sunday
+    # Monday
+    {
+      "03:00:00" = 2  # Scale to 2 agents at 3:00 AM
+      "08:00:00" = 4  # Scale to 4 agents at 8:00 AM
+      "17:00:00" = 2  # Scale to 2 agents at 5:00 PM
+      "22:00:00" = 0  # Scale to 0 agents at 10:00 PM
+    },
+    # Tuesday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Wednesday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Thursday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Friday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Saturday
+    {} # Empty map to skip Saturday
+  ]
+}
+```
 
 Type:
 
 ```hcl
 object({
-    timeZone = optional(string)
-    sunday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    monday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    tuesday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    wednesday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    thursday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    friday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    saturday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
+    time_zone = optional(string)
+    days_data = optional(list(map(number)))
   })
 ```
 
@@ -340,16 +294,16 @@ Type: `bool`
 
 Default: `true`
 
-### <a name="input_fabricProfileDataDisks"></a> [fabricProfileDataDisks](#input\_fabricProfileDataDisks)
+### <a name="input_fabric_profile_data_disks"></a> [fabric\_profile\_data\_disks](#input\_fabric\_profile\_data\_disks)
 
 Description: A list of objects representing the configuration for fabric profile data disks.
 
 - `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
-- `diskSizeGiB` - (Required) The size of the data disk in GiB.
-- `driveLetter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
-- `storageAccountType` - (Optional) The storage account type for the data disk. Defaults to "Standard\_LRS".
+- `disk_size_gigabytes` - (Optional) The size of the data disk in GiB. Defaults to 100GB.
+- `drive_letter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
+- `storage_account_type` - (Optional) The storage account type for the data disk. Defaults to "Premium\_ZRS".
 
-Valid values for `storageAccountType` are:
+Valid values for `storage_account_type` are:
 - `Premium_LRS`
 - `Premium_ZRS`
 - `StandardSSD_LRS`
@@ -359,14 +313,64 @@ Type:
 
 ```hcl
 list(object({
-    caching            = optional(string, "ReadWrite")
-    diskSizeGiB        = number
-    driveLetter        = optional(string, null)
-    storageAccountType = optional(string, "Standard_LRS")
+    caching              = optional(string, "ReadWrite")
+    disk_size_gigabytes  = optional(number, 100)
+    drive_letter         = optional(string, null)
+    storage_account_type = optional(string, "Premium_ZRS")
   }))
 ```
 
 Default: `[]`
+
+### <a name="input_fabric_profile_images"></a> [fabric\_profile\_images](#input\_fabric\_profile\_images)
+
+Description: The list of images to use for the fabric profile.
+
+Each object in the list can have the following attributes:
+- `resource_id` - (Optional) The resource ID of the image, this can either be resource ID of a Standard Azure VM Image or a Image that is hosted within Azure Image Gallery.
+- `well_known_image_name` - (Optional) The well-known name of the image, thid is used to reference the well-known images that are available on Microsoft Hosted Agents, supported images are `ubuntu-22.04/latest`, `ubuntu-20.04/latest`, `windows-2022/latest`, and `windows-2019/latest`.
+- `buffer` - (Optional) The buffer associated with the image.
+- `aliases` - (Required) A list of aliases for the image.
+
+Type:
+
+```hcl
+list(object({
+    resource_id           = optional(string)
+    well_known_image_name = optional(string)
+    buffer                = optional(string, "*")
+    aliases               = optional(list(string))
+  }))
+```
+
+Default:
+
+```json
+[
+  {
+    "aliases": [
+      "ubuntu-22.04/latest"
+    ],
+    "well_known_image_name": "ubuntu-22.04/latest"
+  }
+]
+```
+
+### <a name="input_fabric_profile_os_disk_storage_account_type"></a> [fabric\_profile\_os\_disk\_storage\_account\_type](#input\_fabric\_profile\_os\_disk\_storage\_account\_type)
+
+Description: The storage account type for the OS disk, possible values are 'Standard', 'Premium' and 'StandardSSD', defaults to 'Premium'.
+
+Type: `string`
+
+Default: `"Premium"`
+
+### <a name="input_fabric_profile_sku_name"></a> [fabric\_profile\_sku\_name](#input\_fabric\_profile\_sku\_name)
+
+Description: The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximumConcurrency` value, make sure you request enough quota, defaults to 'Standard\_D2ads\_v5' which has 2 vCPU Cores. so if maximumConcurrency is 2, you will need quota for 4 vCPU Cores and so on.
+
+Type: `string`
+
+Default: `"Standard_D2ads_v5"`
 
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
@@ -404,6 +408,14 @@ object({
 
 Default: `{}`
 
+### <a name="input_maximum_concurrency"></a> [maximum\_concurrency](#input\_maximum\_concurrency)
+
+Description: The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1.
+
+Type: `number`
+
+Default: `5`
+
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
 Description: A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -433,7 +445,7 @@ map(object({
 
 Default: `{}`
 
-### <a name="input_subnetId"></a> [subnetId](#input\_subnetId)
+### <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id)
 
 Description: The subnet id on which to put all machines created in the pool
 
@@ -447,7 +459,7 @@ Description: The subscription ID to use for the resource.
 
 Type: `string`
 
-Default: `""`
+Default: `null`
 
 ### <a name="input_tags"></a> [tags](#input\_tags)
 
@@ -461,9 +473,17 @@ Default: `null`
 
 The following outputs are exported:
 
+### <a name="output_name"></a> [name](#output\_name)
+
+Description: The name of the Managed DevOps Pool.
+
 ### <a name="output_resource"></a> [resource](#output\_resource)
 
-Description: This is the full output for the resource.
+Description: This is the full output for the Managed DevOps Pool.
+
+### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
+
+Description: The resource if of the Managed DevOps Pool.
 
 ## Modules
 

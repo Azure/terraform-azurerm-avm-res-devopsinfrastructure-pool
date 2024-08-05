@@ -10,12 +10,10 @@ locals {
       daysData = var.agent_profile_resource_predictions_manual.days_data
     } : null
   }
-
   agent_profile_stateful = var.agent_profile_kind == "Stateful" ? {
     gracePeriodTimeSpan = var.agent_profile_grace_period_time_span
     maxAgentLifetime    = var.agent_profile_max_agent_lifetime
   } : {}
-
   managed_identities = {
     system_assigned_user_assigned = (var.managed_identities.system_assigned || length(var.managed_identities.user_assigned_resource_ids) > 0) ? {
       this = {

@@ -4,63 +4,10 @@ variable "dev_center_project_resource_id" {
   nullable    = false
 }
 
-variable "fabric_profile_images" {
-  type = list(object({
-    resource_id           = optional(string)
-    well_known_image_name = optional(string)
-    buffer                = optional(string, "*")
-    aliases               = optional(list(string))
-  }))
-  default = [{
-    well_known_image_name = "ubuntu-22.04/latest"
-    aliases = [
-      "ubuntu-22.04/latest"
-    ]
-  }]
-  description = <<DESCRIPTION
-The list of images to use for the fabric profile.
-
-Each object in the list can have the following attributes:
-- `resource_id` - (Optional) The resource ID of the image, this can either be resource ID of a Standard Azure VM Image or a Image that is hosted within Azure Image Gallery.
-- `well_known_image_name` - (Optional) The well-known name of the image, thid is used to reference the well-known images that are available on Microsoft Hosted Agents, supported images are `ubuntu-22.04/latest`, `ubuntu-20.04/latest`, `windows-2022/latest`, and `windows-2019/latest`.
-- `buffer` - (Optional) The buffer associated with the image.
-- `aliases` - (Required) A list of aliases for the image.
-DESCRIPTION
-
-}
-
-
-variable "fabric_profile_os_disk_storage_account_type" {
-  type        = string
-  description = "The storage account type for the OS disk, possible values are 'Standard', 'Premium' and 'StandardSSD', defaults to 'Premium'."
-  default     = "Premium"
-  validation {
-    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabric_profile_os_disk_storage_account_type))
-    error_message = "The fabric_profile_os_disk_storage_account_type must be one of: 'Standard', 'Premium', 'StandardSSD'."
-  }
-}
-
-variable "fabric_profile_sku_name" {
-  type        = string
-  default     = "Standard_D2ads_v5"
-  description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximumConcurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximumConcurrency is 2, you will need quota for 4 vCPU Cores and so on."
-}
-
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
   nullable    = false
-}
-
-variable "maximum_concurrency" {
-  type        = number
-  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1."
-  default     = 5
-
-  validation {
-    condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000
-    error_message = "The maximumConcurrency must be between 1 and 10000. Defaults to 10000"
-  }
 }
 
 variable "name" {
@@ -343,6 +290,47 @@ DESCRIPTION
   }
 }
 
+variable "fabric_profile_images" {
+  type = list(object({
+    resource_id           = optional(string)
+    well_known_image_name = optional(string)
+    buffer                = optional(string, "*")
+    aliases               = optional(list(string))
+  }))
+  default = [{
+    well_known_image_name = "ubuntu-22.04/latest"
+    aliases = [
+      "ubuntu-22.04/latest"
+    ]
+  }]
+  description = <<DESCRIPTION
+The list of images to use for the fabric profile.
+
+Each object in the list can have the following attributes:
+- `resource_id` - (Optional) The resource ID of the image, this can either be resource ID of a Standard Azure VM Image or a Image that is hosted within Azure Image Gallery.
+- `well_known_image_name` - (Optional) The well-known name of the image, thid is used to reference the well-known images that are available on Microsoft Hosted Agents, supported images are `ubuntu-22.04/latest`, `ubuntu-20.04/latest`, `windows-2022/latest`, and `windows-2019/latest`.
+- `buffer` - (Optional) The buffer associated with the image.
+- `aliases` - (Required) A list of aliases for the image.
+DESCRIPTION
+}
+
+variable "fabric_profile_os_disk_storage_account_type" {
+  type        = string
+  default     = "Premium"
+  description = "The storage account type for the OS disk, possible values are 'Standard', 'Premium' and 'StandardSSD', defaults to 'Premium'."
+
+  validation {
+    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabric_profile_os_disk_storage_account_type))
+    error_message = "The fabric_profile_os_disk_storage_account_type must be one of: 'Standard', 'Premium', 'StandardSSD'."
+  }
+}
+
+variable "fabric_profile_sku_name" {
+  type        = string
+  default     = "Standard_D2ads_v5"
+  description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximumConcurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximumConcurrency is 2, you will need quota for 4 vCPU Cores and so on."
+}
+
 variable "lock" {
   type = object({
     kind = string
@@ -376,6 +364,17 @@ Controls the Managed Identity configuration on this resource. The following prop
 - `user_assigned_resource_ids` - (Optional) Specifies a list of User Assigned Managed Identity resource IDs to be assigned to this resource.
 DESCRIPTION
   nullable    = false
+}
+
+variable "maximum_concurrency" {
+  type        = number
+  default     = 5
+  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1."
+
+  validation {
+    condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000
+    error_message = "The maximumConcurrency must be between 1 and 10000. Defaults to 10000"
+  }
 }
 
 variable "role_assignments" {

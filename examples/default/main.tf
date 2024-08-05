@@ -122,8 +122,8 @@ resource "azuredevops_pipeline_authorization" "this" {
 }
 
 resource "azurerm_resource_group" "this" {
-  name     = "rg-${random_string.name.result}"
   location = local.selected_region
+  name     = "rg-${random_string.name.result}"
 }
 
 locals {
@@ -140,18 +140,20 @@ locals {
 data "azurerm_client_config" "this" {}
 
 resource "azapi_resource_action" "resource_provider_registration" {
-  for_each    = local.resource_providers_to_register
-  type        = "Microsoft.Resources/subscriptions@2021-04-01"
+  for_each = local.resource_providers_to_register
+
   resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
   action      = "providers/${each.value.resource_provider}/register"
   method      = "POST"
 }
 
 resource "azurerm_dev_center" "this" {
+  location            = azurerm_resource_group.this.location
   name                = "dc-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
-  depends_on          = [azapi_resource_action.resource_provider_registration]
+
+  depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
 resource "azurerm_dev_center_project" "this" {

@@ -173,7 +173,7 @@ locals {
     "westeurope" # Capacity issues
   ]
   included_regions = [
-    "northcentralusstage", "westus2", "southeastasia", "swedencentral", "canadacentral", "westeurope", "northeurope", "eastus", "eastus2", "eastasia", "australiaeast", "germanywestcentral", "japaneast", "uksouth", "westus", "centralus", "northcentralus", "southcentralus", "koreacentral", "brazilsouth", "westus3", "francecentral", "southafricanorth", "norwayeast", "switzerlandnorth", "uaenorth", "canadaeast", "westcentralus", "ukwest", "centralindia", "italynorth", "polandcentral", "southindia"
+    "australiaeast","southeastasia","westus","westus2","westus3","brazilsouth","centralindia","eastasia","eastus","eastus2","canadacentral","centralus","northcentralus","southcentralus","westcentralus","northeurope","westeurope","uksouth"
   ]
   regions         = [for region in module.regions.regions : region.name if !contains(local.excluded_regions, region.name) && contains(local.included_regions, region.name)]
   selected_region = local.regions[random_integer.region_index.result]

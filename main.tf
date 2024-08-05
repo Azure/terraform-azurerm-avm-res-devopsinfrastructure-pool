@@ -2,31 +2,41 @@ resource "azapi_resource" "mdp" {
   type = "Microsoft.DevOpsInfrastructure/pools@2024-04-04-preview"
   body = {
     properties = {
-      devCenterProjectResourceId = var.devCenterProjectResourceId
-      maximumConcurrency         = var.maximumConcurrency
+      devCenterProjectResourceId = var.dev_center_project_resource_id
+      maximumConcurrency         = var.maximum_concurrency
       organizationProfile = {
-        kind              = "AzureDevOps"
-        organizations     = local.organizationProfile.organizations
-        permissionProfile = local.organizationProfile.permissionProfile
+        kind              = var.organization_profile.kind
+        organizations     = local.organization_profile.organizations
+        permissionProfile = local.organization_profile.permission_profile
       }
 
-      agentProfile = local.agentProfile
+      agentProfile = local.agent_profile
 
       fabricProfile = {
         sku = {
-          name = var.fabricProfileSkuName
+          name = var.fabric_profile_sku_name
         }
-        images = var.fabricProfileImages
+        images = [ for image in var.fabric_profile_images : {
+          wellKnownImageName = image.well_known_image_name
+          aliases = image.aliases
+          buffer = image.buffer
+          resourceId = image.resource_id
+        } ]
 
-        networkProfile = var.subnetId != null ? {
-          subnetId = var.subnetId
+        networkProfile = var.subnet_id != null ? {
+          subnetId = var.subnet_id
         } : null
         osProfile = {
           logonType = "Service"
         }
         storageProfile = {
-          osDiskStorageAccountType = var.fabricProfileOsDiskStorageAccountType
-          dataDisks                = var.fabricProfileDataDisks
+          osDiskStorageAccountType = var.fabric_profile_os_disk_storage_account_type
+          dataDisks                = [ for data_disk in var.fabric_profile_data_disks : {
+            diskSizeGiB = data_disk.disk_size_gigabytes
+            caching = data_disk.caching
+            driveLetter = data_disk.drive_letter
+            storageAccountType = data_disk.storage_account_type
+          } ]
         }
         kind = "Vmss"
       }

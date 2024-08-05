@@ -128,10 +128,23 @@ resource "azuredevops_pipeline_authorization" "this" {
   pipeline_id = azuredevops_build_definition.this.id
 }
 
+resource "azurerm_resource_group" "this" {
+  name     = "rg-${random_string.name.result}"
+  location = local.selected_region
+}
+
 # This is the module call
 module "managed_devops_pool" {
   source                                       = "../.."
-  # TODO: Add the variables
+  resource_group_name = azurerm_resource_group.this.name
+  location                                     = azurerm_resource_group.this.location
+  name = random_string.name.result
+  organization_profile = {
+    organizations = [{
+      name = var.azure_devops_organization_name
+      projects = [azuredevops_project.this.name]
+    }]
+  }
   tags                                         = local.tags
   depends_on                                   = [azuredevops_pipeline_authorization.this]
 }

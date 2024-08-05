@@ -1,6 +1,14 @@
-# Module owners should include the full resource via a 'resource' output
-# https://azure.github.io/Azure-Verified-Modules/specs/terraform/#id-tffr2---category-outputs---additional-terraform-outputs
+output "name" {
+  description = "The name of the Managed DevOps Pool."
+  value       = azapi_resource.mdp.name
+}
+
+output "resource_id" {
+  description = "The resource if of the Managed DevOps Pool."
+  value       = azapi_resource.mdp.id
+}
+
 output "resource" {
-  description = "This is the full output for the resource."
+  description = "This is the full output for the Managed DevOps Pool."
   value       = azapi_resource.mdp
 }

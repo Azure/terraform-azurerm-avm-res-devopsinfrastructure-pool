@@ -1,31 +1,37 @@
-variable "devCenterProjectResourceId" {
+variable "dev_center_project_resource_id" {
   type        = string
   description = "The resource ID of the Dev Center project."
+  default = null
 }
 
-variable "fabricProfileImages" {
+variable "fabric_profile_images" {
   type = list(object({
-    resourceId         = optional(string)
-    wellKnownImageName = optional(string)
-    buffer             = string
-    aliases            = list(string)
+    resource_id         = optional(string)
+    well_known_image_name = optional(string)
+    buffer             = optional(string, "*")
+    aliases            = optional(list(string))
   }))
-  description = "The list of images to use for the fabric profile."
+  default = [{
+    well_known_image_name = "ubuntu-22.04"
+  }]
+
+  description = "The list of images to use for the fabric profile. Defaults to the Ubuntu 22.04 agent image."
 }
 
-variable "fabricProfileOsDiskStorageAccountType" {
+variable "fabric_profile_os_disk_storage_account_type" {
   type        = string
   description = "The storage account type for the OS disk."
-
+  default = "Premium"
   validation {
-    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabricProfileOsDiskStorageAccountType))
+    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabric_profile_os_disk_storage_account_type))
     error_message = "The osDiskStorageAccountType must be one of: 'Standard', 'Premium', 'StandardSSD'."
   }
 }
 
-variable "fabricProfileSkuName" {
+variable "fabric_profile_sku_name" {
   type        = string
-  description = "The SKU name of the fabric profile."
+  default = "Standard_D2ads_v5"
+  description = "The SKU name of the fabric profile. Defaults to Standard_D2ads_v5."
 }
 
 variable "location" {
@@ -34,13 +40,14 @@ variable "location" {
   nullable    = false
 }
 
-variable "maximumConcurrency" {
+variable "maximum_concurrency" {
   type        = number
   description = "The maximum number of agents that can run concurrently."
+  default     = 10000
 
   validation {
-    condition     = var.maximumConcurrency >= 1 && var.maximumConcurrency <= 10000
-    error_message = "The maximumConcurrency must be between 1 and 10000."
+    condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000
+    error_message = "The maximumConcurrency must be between 1 and 10000. Defaults to 10000"
   }
 }
 
@@ -54,17 +61,20 @@ variable "name" {
   }
 }
 
-variable "organizationProfile" {
+variable "organization_profile" {
   type = object({
+    kind          = optional(string, "AzureDevOps")
     organizations = list(object({
       name        = string
       projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
       parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
     }))
-    permission_profile = object({
-      kind   = string
+    permission_profile = optional(object({
+      kind   = optional(string, "CreatorOnly")
       users  = optional(list(string), null)
       groups = optional(list(string), null)
+    }), {
+      kind = "CreatorOnly"
     })
   })
   description = <<DESCRIPTION
@@ -87,62 +97,62 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
-variable "agentProfileGracePeriodTimeSpan" {
+variable "agent_profile_grace_period_time_span" {
   type        = string
   default     = null
   description = "How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
 }
 
-variable "agentProfileKind" {
+variable "agent_profile_kind" {
   type        = string
   default     = "Stateless"
   description = "The kind of agent profile."
 
   validation {
-    condition     = can(index(["Stateless", "Stateful"], var.agentProfileKind))
-    error_message = "The agentProfileKind must be one of: 'Stateless', 'Stateful'."
+    condition     = can(index(["Stateless", "Stateful"], var.agent_profile_kind))
+    error_message = "The agent_profile_kind must be one of: 'Stateless', 'Stateful'."
   }
 }
 
-variable "agentProfileMaxAgentLifetime" {
+variable "agent_profile_max_agent_lifetime" {
   type        = string
   default     = null
   description = "The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
 }
 
-variable "agentProfileResourcePredictionProfile" {
+variable "agent_profile_resource_prediction_profile" {
   type        = string
   default     = "None"
   description = "The resource prediction profile for the agent."
 
   validation {
-    condition     = can(index(["None", "Manual", "Automatic"], var.agentProfileResourcePredictionProfile))
-    error_message = "The agentProfileResourcePredictionProfile must be one of: 'None', 'Manual', 'Automatic'."
+    condition     = can(index(["None", "Manual", "Automatic"], var.agent_profile_resource_prediction_profile))
+    error_message = "The agent_profile_resource_prediction_profile must be one of: 'None', 'Manual', 'Automatic'."
   }
 }
 
-variable "agentProfileResourcePredictionProfileAutomatic" {
+variable "agent_profile_resource_prediction_profile_automatic" {
   type = object({
     kind                 = string
-    predictionPreference = string
+    prediction_preference = string
   })
   default = {
     kind                 = "Automatic"
-    predictionPreference = "Balanced"
+    prediction_preference = "Balanced"
   }
   description = "The automatic resource prediction profile for the agent."
 
   validation {
-    condition     = var.agentProfileResourcePredictionProfile == "Automatic" || var.agentProfileResourcePredictionProfileAutomatic != null
-    error_message = "The input for agentProfileResourcePredictionProfileAutomatic must be set when agentProfileResourcePredictionProfile is 'Automatic'."
+    condition     = var.agent_profile_resource_prediction_profile == "Automatic" || var.agent_profile_resource_prediction_profile_automatic != null
+    error_message = "The input for agent_profile_resource_prediction_profile_automatic must be set when agent_profile_resource_prediction_profile is 'Automatic'."
   }
   validation {
-    condition     = can(index(["Balanced", "MostCostEffective", "MoreCostEffective", "MorePerformance", "BestPerformance"], var.agentProfileResourcePredictionProfileAutomatic.predictionPreference))
-    error_message = "The predictionPreference must be one of: 'Balanced', 'MostCostEffective', 'MoreCostEffective', 'MorePerformance', 'BestPerformance'."
+    condition     = can(index(["Balanced", "MostCostEffective", "MoreCostEffective", "MorePerformance", "BestPerformance"], var.agent_profile_resource_prediction_profile_automatic.prediction_preference))
+    error_message = "The prediction_preference must be one of: 'Balanced', 'MostCostEffective', 'MoreCostEffective', 'MorePerformance', 'BestPerformance'."
   }
 }
 
-variable "agentProfileResourcePredictionProfileManual" {
+variable "agent_profile_resource_prediction_profile_manual" {
   type = object({
     kind = string
   })
@@ -152,79 +162,81 @@ variable "agentProfileResourcePredictionProfileManual" {
   description = "The manual resource prediction profile for the agent."
 }
 
-variable "agentProfileResourcePredictionsManual" {
+variable "agent_profile_resource_predictions_manual" {
   type = object({
-    timeZone = optional(string)
-    sunday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    monday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    tuesday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    wednesday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    thursday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    friday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
-    saturday = optional(object({
-      startTime         = optional(string)
-      endTime           = optional(string)
-      provisioningCount = optional(number)
-    }), {})
+    time_zone = optional(string)
+    days_data = optional(list(map(number)))
   })
   default     = {}
   description = <<DESCRIPTION
 An object representing manual resource predictions for agent profiles, including time zone and optional daily schedules.
 
-- `timeZone` - (Required) The time zone for the agent profile.
-- `sunday` - (Optional) An object representing the schedule for Sunday. Defaults to `{}` which means standby agents will be set to 0 for Sunday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `monday` - (Optional) An object representing the schedule for Monday. Defaults to `{}` which means standby agents will be set to 0 for Monday.
-  - `startTime` - (Required) The start time for the schedule
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule, if not set, it will use the `var.maximumConcurrency` value.
-- `tuesday` - (Optional) An object representing the schedule for Tuesday. Defaults to `{}` which means standby agents will be set to 0 for Tuesday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `wednesday` - (Optional) An object representing the schedule for Wednesday. Defaults to `{}` which means standby agents will be set to 0 for Wednesday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `thursday` - (Optional) An object representing the schedule for Thursday. Defaults to `{}` which means standby agents will be set to 0 for Thursday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `friday` - (Optional) An object representing the schedule for Friday. Defaults to `{}` which means standby agents will be set to 0 for Friday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
-- `saturday` - (Optional) An object representing the schedule for Saturday. Defaults to `{}` which means standby agents will be set to 0 for Saturday.
-  - `startTime` - (Required) The start time for the schedule.
-  - `endTime` - (Required) The end time for the schedule.
-  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `time_zone` - (Optional) The time zone for the agent profile. E.g. "Eastern Standard Time".
+- `days_data` - (Optional) A list representing the manual schedules
+
+The `days_data` list should contain one or seven maps. Supply one to apply the same schedule each day. Supply seven for a different schedule each day.
+
+For example, to set the schedule for every day to scale to one agent at 8:00 AM and scale down to zero agents at 5:00 PM, you would use the following configuration:
+
+```hcl
+agent_profile_resource_predictions_manual = {
+  time_zone = "Eastern Standard Time"
+  days_data = [
+    {
+      "08:00:00" = 1
+      "17:00:00" = 0
+    }
+  ]
+}
+```
+
+To set a different schedule for each day, you would use the following configuration:
+
+```hcl
+agent_profile_resource_predictions_manual = {
+  time_zone = "Eastern Standard Time"
+  days_data = [
+    # Sunday
+    {}, # Empty map to skip Sunday
+    # Monday
+    {
+      "03:00:00" = 2  # Scale to 2 agents at 3:00 AM
+      "08:00:00" = 4  # Scale to 4 agents at 8:00 AM
+      "17:00:00" = 2  # Scale to 2 agents at 5:00 PM
+      "22:00:00" = 0  # Scale to 0 agents at 10:00 PM
+    },
+    # Tuesday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Wednesday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Thursday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Friday
+    {
+      "08:00:00" = 2
+      "17:00:00" = 0
+    },
+    # Saturday
+    {} # Empty map to skip Saturday
+  ]
+}
+```
+
 DESCRIPTION
+
+  validation {
+    condition = var.agent_profile_resource_predictions_manual.days_data == null ? true : contains([1,7], length(var.agent_profile_resource_predictions_manual.days_data))
+    error_message = "The days_data list must contain one or seven maps."
+  }
 }
 
 variable "diagnostic_settings" {
@@ -283,23 +295,23 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "fabricProfileDataDisks" {
+variable "fabric_profile_data_disks" {
   type = list(object({
-    caching            = optional(string, "ReadWrite")
-    diskSizeGiB        = number
-    driveLetter        = optional(string, null)
-    storageAccountType = optional(string, "Standard_LRS")
+    caching             = optional(string, "ReadWrite")
+    disk_size_gigabytes = optional(number, 100)
+    drive_letter         = optional(string, null)
+    storage_account_type  = optional(string, "Premium_ZRS")
   }))
   default     = []
   description = <<DESCRIPTION
 A list of objects representing the configuration for fabric profile data disks.
 
 - `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
-- `diskSizeGiB` - (Required) The size of the data disk in GiB.
-- `driveLetter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
-- `storageAccountType` - (Optional) The storage account type for the data disk. Defaults to "Standard_LRS".
+- `disk_size_gigabytes` - (Optional) The size of the data disk in GiB. Defaults to 100GB.
+- `drive_letter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
+- `storage_account_type` - (Optional) The storage account type for the data disk. Defaults to "Premium_ZRS".
 
-Valid values for `storageAccountType` are:
+Valid values for `storage_account_type` are:
 - `Premium_LRS`
 - `Premium_ZRS`
 - `StandardSSD_LRS`
@@ -308,7 +320,7 @@ DESCRIPTION
   nullable    = false
 
   validation {
-    condition     = alltrue([for disk in var.fabricProfileDataDisks : can(index(["Standard", "Premium", "StandardSSD"], disk.storageAccountType))])
+    condition     = alltrue([for disk in var.fabric_profile_data_disks : can(index(["Premium_LRS", "Premium_ZRS", "StandardSSD_LRS", "Standard_LRS"], disk.storage_account_type))])
     error_message = "The storageAccountType must be one of: 'Premium_LRS', 'Premium_ZRS', 'StandardSSD_LRS', or `Standard_LRS`."
   }
 }
@@ -374,7 +386,7 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "subnetId" {
+variable "subnet_id" {
   type        = string
   default     = null
   description = "The subnet id on which to put all machines created in the pool"
@@ -382,7 +394,7 @@ variable "subnetId" {
 
 variable "subscription_id" {
   type        = string
-  default     = ""
+  default     = null
   description = "The subscription ID to use for the resource."
 }
 

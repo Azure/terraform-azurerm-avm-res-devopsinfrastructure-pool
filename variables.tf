@@ -1,37 +1,49 @@
 variable "dev_center_project_resource_id" {
   type        = string
   description = "(Required) The resource ID of the Dev Center project."
-  nullable = false
+  nullable    = false
 }
 
 variable "fabric_profile_images" {
   type = list(object({
-    resource_id         = optional(string)
+    resource_id           = optional(string)
     well_known_image_name = optional(string)
-    buffer             = optional(string, "*")
-    aliases            = optional(list(string))
+    buffer                = optional(string, "*")
+    aliases               = optional(list(string))
   }))
   default = [{
-    well_known_image_name = "ubuntu-22.04"
+    well_known_image_name = "ubuntu-22.04/latest"
+    aliases = [
+      "ubuntu-22.04/latest"
+    ]
   }]
+  description = <<DESCRIPTION
+The list of images to use for the fabric profile.
 
-  description = "The list of images to use for the fabric profile. Defaults to the Ubuntu 22.04 agent image."
+Each object in the list can have the following attributes:
+- `resource_id` - (Optional) The resource ID of the image, this can either be resource ID of a Standard Azure VM Image or a Image that is hosted within Azure Image Gallery.
+- `well_known_image_name` - (Optional) The well-known name of the image, thid is used to reference the well-known images that are available on Microsoft Hosted Agents, supported images are `ubuntu-22.04/latest`, `ubuntu-20.04/latest`, `windows-2022/latest`, and `windows-2019/latest`.
+- `buffer` - (Optional) The buffer associated with the image.
+- `aliases` - (Required) A list of aliases for the image.
+DESCRIPTION
+
 }
+
 
 variable "fabric_profile_os_disk_storage_account_type" {
   type        = string
-  description = "The storage account type for the OS disk."
-  default = "Premium"
+  description = "The storage account type for the OS disk, possible values are 'Standard', 'Premium' and 'StandardSSD', defaults to 'Premium'."
+  default     = "Premium"
   validation {
     condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabric_profile_os_disk_storage_account_type))
-    error_message = "The osDiskStorageAccountType must be one of: 'Standard', 'Premium', 'StandardSSD'."
+    error_message = "The fabric_profile_os_disk_storage_account_type must be one of: 'Standard', 'Premium', 'StandardSSD'."
   }
 }
 
 variable "fabric_profile_sku_name" {
   type        = string
-  default = "Standard_D2ads_v5"
-  description = "The SKU name of the fabric profile. Defaults to Standard_D2ads_v5."
+  default     = "Standard_D2ads_v5"
+  description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximumConcurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximumConcurrency is 2, you will need quota for 4 vCPU Cores and so on."
 }
 
 variable "location" {
@@ -42,7 +54,7 @@ variable "location" {
 
 variable "maximum_concurrency" {
   type        = number
-  description = "The maximum number of agents that can run concurrently."
+  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1."
   default     = 5
 
   validation {
@@ -63,7 +75,7 @@ variable "name" {
 
 variable "organization_profile" {
   type = object({
-    kind          = optional(string, "AzureDevOps")
+    kind = optional(string, "AzureDevOps")
     organizations = list(object({
       name        = string
       projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
@@ -73,7 +85,7 @@ variable "organization_profile" {
       kind   = optional(string, "CreatorOnly")
       users  = optional(list(string), null)
       groups = optional(list(string), null)
-    }), {
+      }), {
       kind = "CreatorOnly"
     })
   })
@@ -122,25 +134,31 @@ variable "agent_profile_max_agent_lifetime" {
 
 variable "agent_profile_resource_prediction_profile" {
   type        = string
-  default     = "None"
-  description = "The resource prediction profile for the agent."
+  default     = "Off"
+  description = "The resource prediction profile for the agent, a.k.a `Stand by agent mode`, supported values are 'Off', 'Manual', 'Automatic', defaults to 'Off'."
 
   validation {
-    condition     = can(index(["None", "Manual", "Automatic"], var.agent_profile_resource_prediction_profile))
+    condition     = can(index(["Off", "Manual", "Automatic"], var.agent_profile_resource_prediction_profile))
     error_message = "The agent_profile_resource_prediction_profile must be one of: 'None', 'Manual', 'Automatic'."
   }
 }
 
 variable "agent_profile_resource_prediction_profile_automatic" {
   type = object({
-    kind                 = string
+    kind                  = string
     prediction_preference = string
   })
   default = {
-    kind                 = "Automatic"
+    kind                  = "Automatic"
     prediction_preference = "Balanced"
   }
-  description = "The automatic resource prediction profile for the agent."
+  description = <<DESCRIPTION
+The automatic resource prediction profile for the agent.
+
+The object can have the following attributes:
+- `kind` - (Required) The kind of prediction profile. Default is "Automatic".
+- `prediction_preference` - (Required) The preference for resource prediction. Supported values are `Balanced`, `MostCostEffective`, `MoreCostEffective`, `MorePerformance`, and `BestPerformance`.
+DESCRIPTION
 
   validation {
     condition     = var.agent_profile_resource_prediction_profile == "Automatic" || var.agent_profile_resource_prediction_profile_automatic != null
@@ -234,7 +252,7 @@ agent_profile_resource_predictions_manual = {
 DESCRIPTION
 
   validation {
-    condition = var.agent_profile_resource_predictions_manual.days_data == null ? true : contains([1,7], length(var.agent_profile_resource_predictions_manual.days_data))
+    condition     = var.agent_profile_resource_predictions_manual.days_data == null ? true : contains([1, 7], length(var.agent_profile_resource_predictions_manual.days_data))
     error_message = "The days_data list must contain one or seven maps."
   }
 }
@@ -297,10 +315,10 @@ DESCRIPTION
 
 variable "fabric_profile_data_disks" {
   type = list(object({
-    caching             = optional(string, "ReadWrite")
-    disk_size_gigabytes = optional(number, 100)
+    caching              = optional(string, "ReadWrite")
+    disk_size_gigabytes  = optional(number, 100)
     drive_letter         = optional(string, null)
-    storage_account_type  = optional(string, "Premium_ZRS")
+    storage_account_type = optional(string, "Premium_ZRS")
   }))
   default     = []
   description = <<DESCRIPTION

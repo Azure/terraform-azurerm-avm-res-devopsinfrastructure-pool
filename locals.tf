@@ -48,7 +48,7 @@ locals {
     }
   }
   resource_prediction_profile = (
-    var.agent_profile_resource_prediction_profile == "None" ? null :
+    var.agent_profile_resource_prediction_profile == "Off" ? null :
     var.agent_profile_resource_prediction_profile == "Automatic" ? var.agent_profile_resource_prediction_profile_automatic :
     var.agent_profile_resource_prediction_profile == "Manual" ? var.agent_profile_resource_prediction_profile_manual : null
   )

@@ -1,7 +1,47 @@
+variable "devCenterProjectResourceId" {
+  type        = string
+  description = "The resource ID of the Dev Center project."
+}
+
+variable "fabricProfileImages" {
+  type = list(object({
+    resourceId         = optional(string)
+    wellKnownImageName = optional(string)
+    buffer             = string
+    aliases            = list(string)
+  }))
+  description = "The list of images to use for the fabric profile."
+}
+
+variable "fabricProfileOsDiskStorageAccountType" {
+  type        = string
+  description = "The storage account type for the OS disk."
+
+  validation {
+    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabricProfileOsDiskStorageAccountType))
+    error_message = "The osDiskStorageAccountType must be one of: 'Standard', 'Premium', 'StandardSSD'."
+  }
+}
+
+variable "fabricProfileSkuName" {
+  type        = string
+  description = "The SKU name of the fabric profile."
+}
+
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
   nullable    = false
+}
+
+variable "maximumConcurrency" {
+  type        = number
+  description = "The maximum number of agents that can run concurrently."
+
+  validation {
+    condition     = var.maximumConcurrency >= 1 && var.maximumConcurrency <= 10000
+    error_message = "The maximumConcurrency must be between 1 and 10000."
+  }
 }
 
 variable "name" {
@@ -14,78 +54,67 @@ variable "name" {
   }
 }
 
+variable "organizationProfile" {
+  type = object({
+    organizations = list(object({
+      name        = string
+      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
+    }))
+    permission_profile = object({
+      kind   = string
+      users  = optional(list(string), null)
+      groups = optional(list(string), null)
+    })
+  })
+  description = <<DESCRIPTION
+An object representing the configuration for an organization profile, including organizations and permission profiles.
+
+- `organizations` - (Required) A list of objects representing the organizations.
+  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
+  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `var.maximumConcurrency`; otherwise, it will use the `var.maximumConcurrency` value as default or the value you define for single Organization.
+- `permission_profile` - (Required) An object representing the permission profile.
+  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
+  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
+  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
+DESCRIPTION
+}
+
 # This is required for most resource modules
 variable "resource_group_name" {
   type        = string
   description = "The resource group where the resources will be deployed."
 }
 
-variable "devCenterProjectResourceId" {
+variable "agentProfileGracePeriodTimeSpan" {
   type        = string
-  description = "The resource ID of the Dev Center project."
-}
-
-variable "subscription_id" {
-  type        = string
-  description = "The subscription ID to use for the resource."
-  default     = ""
-}
-
-variable "maximumConcurrency" {
-  type        = number
-  description = "The maximum number of agents that can run concurrently."
-  validation {
-    condition     = var.maximumConcurrency >= 1 && var.maximumConcurrency <= 10000
-    error_message = "The maximumConcurrency must be between 1 and 10000."
-  }
+  default     = null
+  description = "How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
 }
 
 variable "agentProfileKind" {
   type        = string
-  description = "The kind of agent profile."
   default     = "Stateless"
+  description = "The kind of agent profile."
+
   validation {
     condition     = can(index(["Stateless", "Stateful"], var.agentProfileKind))
     error_message = "The agentProfileKind must be one of: 'Stateless', 'Stateful'."
   }
 }
 
-variable "agentProfileGracePeriodTimeSpan" {
-  type        = string
-  description = "How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
-  default     = null
-
-  # validation {
-  #   condition     = var.agentProfileKind == "Stateful" && var.agentProfileGracePeriodTimeSpan != null
-  #   error_message = "The gracePeriodTimeSpan must be set when agentProfileKind is 'Stateful'."
-  # }
-
-  # validation {
-  #   condition     = can(regex("^\\d{1}\\:\\d{2}:\\d{2}:\\d{2}$", var.agentProfileGracePeriodTimeSpan))
-  #   error_message = "The gracePeriodTimeSpan must be in d:hh:mm:ss format."
-  # }
-
-}
-
 variable "agentProfileMaxAgentLifetime" {
   type        = string
-  description = "The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
   default     = null
-
-  # validation {
-  #   condition     = var.agentProfileKind == "Stateful" && var.agentProfileMaxAgentLifetime != null
-  #   error_message = "The maxAgentLifetime must be set when agentProfileKind is 'Stateful'."
-  # }
-  # validation {
-  #   condition     = can(regex("^\\d{1}\\:\\d{2}:\\d{2}:\\d{2}$", var.agentProfileMaxAgentLifetime))
-  #   error_message = "The maxAgentLifetime must be in d:hh:mm:ss format."
-  # }
+  description = "The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
 }
 
 variable "agentProfileResourcePredictionProfile" {
   type        = string
-  description = "The resource prediction profile for the agent."
   default     = "None"
+  description = "The resource prediction profile for the agent."
+
   validation {
     condition     = can(index(["None", "Manual", "Automatic"], var.agentProfileResourcePredictionProfile))
     error_message = "The agentProfileResourcePredictionProfile must be one of: 'None', 'Manual', 'Automatic'."
@@ -97,17 +126,16 @@ variable "agentProfileResourcePredictionProfileAutomatic" {
     kind                 = string
     predictionPreference = string
   })
-  description = "The automatic resource prediction profile for the agent."
   default = {
     kind                 = "Automatic"
     predictionPreference = "Balanced"
   }
+  description = "The automatic resource prediction profile for the agent."
 
   validation {
     condition     = var.agentProfileResourcePredictionProfile == "Automatic" || var.agentProfileResourcePredictionProfileAutomatic != null
     error_message = "The input for agentProfileResourcePredictionProfileAutomatic must be set when agentProfileResourcePredictionProfile is 'Automatic'."
   }
-
   validation {
     condition     = can(index(["Balanced", "MostCostEffective", "MoreCostEffective", "MorePerformance", "BestPerformance"], var.agentProfileResourcePredictionProfileAutomatic.predictionPreference))
     error_message = "The predictionPreference must be one of: 'Balanced', 'MostCostEffective', 'MoreCostEffective', 'MorePerformance', 'BestPerformance'."
@@ -118,10 +146,10 @@ variable "agentProfileResourcePredictionProfileManual" {
   type = object({
     kind = string
   })
-  description = "The manual resource prediction profile for the agent."
   default = {
     kind = "Manual"
   }
+  description = "The manual resource prediction profile for the agent."
 }
 
 variable "agentProfileResourcePredictionsManual" {
@@ -199,170 +227,6 @@ An object representing manual resource predictions for agent profiles, including
 DESCRIPTION
 }
 
-# variable "agentProfile" {
-#   type = object({
-#     kind                = string
-#     gracePeriodTimeSpan = optional(string)
-#     maxAgentLifetime    = optional(string)
-#     resourcePredictionsProfile = optional(object({
-#       kind                 = string
-#       predictionPreference = string
-#     }), null)
-#     resourcePredictions = optional(object({ # TODO: We need to figure out the best way to handle the resourcePredictions object.
-#       preProvisioningQuickStarter = string
-#       timeZone                    = string
-#       provisioningCount           = number
-#     }), null)
-#   })
-#   default = {
-#     kind = "Stateless"
-#   }
-#   description = <<DESCRIPTION
-# An object representing the configuration for an agent profile, including kind, grace period, maximum lifetime, and resource predictions.
-
-# - `kind` - (Required) The type of agent profile. Default is "Stateless".
-# - `gracePeriodTimeSpan` - (Optional) The grace period time span for the agent profile in `dd.hh:mm:ss` format.
-# - `maxAgentLifetime` - (Optional) The maximum lifetime for the agent profile in `dd.hh:mm:ss` format.
-# - `resourcePredictionsProfile` - (Optional) An object representing the resource predictions profile. Defaults to `null`.
-#   - `kind` - (Required) The kind of resource predictions profile.
-#   - `predictionPreference` - (Required) The prediction preference for the resource predictions profile.
-# - `resourcePredictions` - (Optional) An object representing the resource predictions. Defaults to `null`.
-#   - `preProvisioningQuickStarter` - (Required) The pre-provisioning quick starter setting.
-#   - `timeZone` - (Required) The time zone for the resource predictions.
-#   - `provisioningCount` - (Required) The number of provisions for the resource predictions.
-# DESCRIPTION
-
-#   validation {
-#     condition = (
-#       var.agentProfile.gracePeriodTimeSpan == null || can(regex("^\\d{2}\\.\\d{2}:\\d{2}:\\d{2}$", var.agentProfile.gracePeriodTimeSpan)) &&
-#       var.agentProfile.maxAgentLifetime == null || can(regex("^\\d{2}\\.\\d{2}:\\d{2}:\\d{2}$", var.agentProfile.maxAgentLifetime))
-#     )
-#     error_message = "The gracePeriodTimeSpan and maxAgentLifetime must be in dd.hh:mm:ss format or null."
-#   }
-# }
-
-variable "organizationProfile" {
-  type = object({
-    organizations = list(object({
-      name        = string
-      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
-      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
-    }))
-    permission_profile = object({
-      kind   = string
-      users  = optional(list(string), null)
-      groups = optional(list(string), null)
-    })
-  })
-  description = <<DESCRIPTION
-An object representing the configuration for an organization profile, including organizations and permission profiles.
-
-- `organizations` - (Required) A list of objects representing the organizations.
-  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
-  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
-  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `var.maximumConcurrency`; otherwise, it will use the `var.maximumConcurrency` value as default or the value you define for single Organization.
-- `permission_profile` - (Required) An object representing the permission profile.
-  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
-  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
-  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
-DESCRIPTION
-}
-
-variable "fabricProfileSkuName" {
-  type        = string
-  description = "The SKU name of the fabric profile."
-}
-
-variable "fabricProfileImages" {
-  type = list(object({
-    resourceId         = optional(string)
-    wellKnownImageName = optional(string)
-    buffer             = string
-    aliases            = list(string)
-  }))
-  description = "The list of images to use for the fabric profile."
-}
-
-variable "fabricProfileOsDiskStorageAccountType" {
-  type        = string
-  description = "The storage account type for the OS disk."
-  validation {
-    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabricProfileOsDiskStorageAccountType))
-    error_message = "The osDiskStorageAccountType must be one of: 'Standard', 'Premium', 'StandardSSD'."
-  }
-}
-
-variable "fabricProfileDataDisks" {
-  type = list(object({
-    caching            = optional(string, "ReadWrite")
-    diskSizeGiB        = number
-    driveLetter        = optional(string, null)
-    storageAccountType = optional(string, "Standard_LRS")
-  }))
-  default     = []
-  description = <<DESCRIPTION
-A list of objects representing the configuration for fabric profile data disks.
-
-- `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
-- `diskSizeGiB` - (Required) The size of the data disk in GiB.
-- `driveLetter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
-- `storageAccountType` - (Optional) The storage account type for the data disk. Defaults to "Standard_LRS".
-
-Valid values for `storageAccountType` are:
-- `Premium_LRS`
-- `Premium_ZRS`
-- `StandardSSD_LRS`
-- `Standard_LRS`
-DESCRIPTION
-  nullable    = false
-
-  validation {
-    condition     = alltrue([for disk in var.fabricProfileDataDisks : can(index(["Standard", "Premium", "StandardSSD"], disk.storageAccountType))])
-    error_message = "The storageAccountType must be one of: 'Premium_LRS', 'Premium_ZRS', 'StandardSSD_LRS', or `Standard_LRS`."
-  }
-}
-
-variable "subnetId" {
-  type        = string
-  description = "The subnet id on which to put all machines created in the pool"
-  default     = null
-  nullable    = true
-}
-
-
-# ## ToDO Need Varables for Multiple Organization Support
-
-# variable "projects" {
-#   type = list(string)
-#   default = []
-#   description = "The list of projects that the agent can run on, defaults to all projects."
-# }
-
-# # Not sure if this is needed, but it's possible in the Portal atm.
-# variable "enable_interactive_mode" {
-#   type = bool
-#   default = false
-#   description = "Enable interactive mode for the agent."
-# }
-
-# variable = "pool_administration_permissions" {
-#   type = object({
-#     kind = string
-#     accounts = optional(list(object({
-#       email_object_id = string
-#       account_type       = string
-#     })), [])
-#   })
-#   default = {
-#     kind = "CreatorOnly"
-#   }
-#   description = "Choose who will be able to administer the pool that will be created, supports 'CreatorOnly', 'Inherit', and 'SpecificAccounts', if 'SpecificAccounts' is chosen, you must provide a list of User Accounts or Groups."
-# }
-
-# required AVM interfaces
-# remove only if not supported by the resource
-# tflint-ignore: terraform_unused_declarations
-
 variable "diagnostic_settings" {
   type = map(object({
     name                                     = optional(string, null)
@@ -417,6 +281,36 @@ For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 DESCRIPTION
   nullable    = false
+}
+
+variable "fabricProfileDataDisks" {
+  type = list(object({
+    caching            = optional(string, "ReadWrite")
+    diskSizeGiB        = number
+    driveLetter        = optional(string, null)
+    storageAccountType = optional(string, "Standard_LRS")
+  }))
+  default     = []
+  description = <<DESCRIPTION
+A list of objects representing the configuration for fabric profile data disks.
+
+- `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
+- `diskSizeGiB` - (Required) The size of the data disk in GiB.
+- `driveLetter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
+- `storageAccountType` - (Optional) The storage account type for the data disk. Defaults to "Standard_LRS".
+
+Valid values for `storageAccountType` are:
+- `Premium_LRS`
+- `Premium_ZRS`
+- `StandardSSD_LRS`
+- `Standard_LRS`
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition     = alltrue([for disk in var.fabricProfileDataDisks : can(index(["Standard", "Premium", "StandardSSD"], disk.storageAccountType))])
+    error_message = "The storageAccountType must be one of: 'Premium_LRS', 'Premium_ZRS', 'StandardSSD_LRS', or `Standard_LRS`."
+  }
 }
 
 variable "lock" {
@@ -478,6 +372,18 @@ A map of role assignments to create on this resource. The map key is deliberatel
 > Note: only set `skip_service_principal_aad_check` to true if you are assigning a role to a service principal.
 DESCRIPTION
   nullable    = false
+}
+
+variable "subnetId" {
+  type        = string
+  default     = null
+  description = "The subnet id on which to put all machines created in the pool"
+}
+
+variable "subscription_id" {
+  type        = string
+  default     = ""
+  description = "The subscription ID to use for the resource."
 }
 
 # tflint-ignore: terraform_unused_declarations

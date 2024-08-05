@@ -1,28 +1,19 @@
 # TODO: insert locals here.
 locals {
-  managed_identities = {
-    system_assigned_user_assigned = (var.managed_identities.system_assigned || length(var.managed_identities.user_assigned_resource_ids) > 0) ? {
-      this = {
-        type                       = var.managed_identities.system_assigned && length(var.managed_identities.user_assigned_resource_ids) > 0 ? "SystemAssigned, UserAssigned" : length(var.managed_identities.user_assigned_resource_ids) > 0 ? "UserAssigned" : "SystemAssigned"
-        user_assigned_resource_ids = var.managed_identities.user_assigned_resource_ids
-      }
-    } : {}
-    system_assigned = var.managed_identities.system_assigned ? {
-      this = {
-        type = "SystemAssigned"
-      }
-    } : {}
-    user_assigned = length(var.managed_identities.user_assigned_resource_ids) > 0 ? {
-      this = {
-        type                       = "UserAssigned"
-        user_assigned_resource_ids = var.managed_identities.user_assigned_resource_ids
-      }
-    } : {}
+  agentProfile = merge(local.agentProfileBase, local.agentProfileStateful)
+  # Workaround to avoid Payload API Spec Validation error, having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they had Null value.
+  agentProfileBase = {
+    kind                       = var.agentProfileKind
+    resourcePredictionsProfile = local.resourcePredictionsProfile
+    resourcePredictions = var.agentProfileResourcePredictionProfile == "Manual" ? {
+      timeZone = var.agentProfileResourcePredictionsManual.timeZone
+      daysData = local.daysData
+    } : null
   }
-
-  role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
-  subscription_id                    = coalesce(var.subscription_id, data.azurerm_client_config.this.subscription_id)
-
+  agentProfileStateful = var.agentProfileKind == "Stateful" ? {
+    gracePeriodTimeSpan = var.agentProfileGracePeriodTimeSpan
+    maxAgentLifetime    = var.agentProfileMaxAgentLifetime
+  } : {}
   daysData = [
     # Sunday
     length(keys(var.agentProfileResourcePredictionsManual.sunday)) == 0 || var.agentProfileResourcePredictionsManual.sunday.startTime == null ? {} : {
@@ -60,6 +51,25 @@ locals {
       "${var.agentProfileResourcePredictionsManual.saturday.endTime}"   = 0
     }
   ]
+  managed_identities = {
+    system_assigned_user_assigned = (var.managed_identities.system_assigned || length(var.managed_identities.user_assigned_resource_ids) > 0) ? {
+      this = {
+        type                       = var.managed_identities.system_assigned && length(var.managed_identities.user_assigned_resource_ids) > 0 ? "SystemAssigned, UserAssigned" : length(var.managed_identities.user_assigned_resource_ids) > 0 ? "UserAssigned" : "SystemAssigned"
+        user_assigned_resource_ids = var.managed_identities.user_assigned_resource_ids
+      }
+    } : {}
+    system_assigned = var.managed_identities.system_assigned ? {
+      this = {
+        type = "SystemAssigned"
+      }
+    } : {}
+    user_assigned = length(var.managed_identities.user_assigned_resource_ids) > 0 ? {
+      this = {
+        type                       = "UserAssigned"
+        user_assigned_resource_ids = var.managed_identities.user_assigned_resource_ids
+      }
+    } : {}
+  }
   organizationProfile = {
     organizations = [for org in var.organizationProfile.organizations : {
       url         = "https://dev.azure.com/${org.name}"
@@ -72,57 +82,11 @@ locals {
       groups = var.organizationProfile.permission_profile.kind == "SpecificAccounts" ? var.organizationProfile.permission_profile.groups : null
     }
   }
-
   resourcePredictionsProfile = (
     var.agentProfileResourcePredictionProfile == "None" ? null :
     var.agentProfileResourcePredictionProfile == "Automatic" ? var.agentProfileResourcePredictionProfileAutomatic :
     var.agentProfileResourcePredictionProfile == "Manual" ? var.agentProfileResourcePredictionProfileManual : null
   )
-
-  # Workaround to avoid Payload API Spec Validation error, having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they had Null value.
-  agentProfileBase = {
-    kind                       = var.agentProfileKind
-    resourcePredictionsProfile = local.resourcePredictionsProfile
-    resourcePredictions = var.agentProfileResourcePredictionProfile == "Manual" ? {
-      timeZone = var.agentProfileResourcePredictionsManual.timeZone
-      daysData = local.daysData
-    } : null
-  }
-
-  agentProfileStateful = var.agentProfileKind == "Stateful" ? {
-    gracePeriodTimeSpan = var.agentProfileGracePeriodTimeSpan
-    maxAgentLifetime    = var.agentProfileMaxAgentLifetime
-  } : {}
-
-  agentProfile = merge(local.agentProfileBase, local.agentProfileStateful)
-
-
-  # The following error was produced when running the unit test and having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they
-  # had Null value, hence the workaround above
-
-  #################################################################################################
-  # │ --------------------------------------------------------------------------------
-  # │ RESPONSE 400: 400 Bad Request
-  # │ ERROR CODE: HttpRequestPayloadAPISpecValidationFailed
-  # │ --------------------------------------------------------------------------------
-  # │ {
-  # │   "error": {
-  # │     "code": "HttpRequestPayloadAPISpecValidationFailed",
-  # │     "target": "Microsoft.DevOpsInfrastructure/pools/avm-mdp-unit-test-pool",
-  # │     "message": "HTTP request payload failed validation against API specification with one or more errors. Please see details for more information.",
-  # │     "details": [
-  # │       {
-  # │         "code": "ObjectAdditionalProperties",
-  # │         "message": "Additional properties not allowed: gracePeriodTimeSpan. Paths in payload: '$.properties.agentProfile.gracePeriodTimeSpan'"
-  # │       },
-  # │       {
-  # │         "code": "ObjectAdditionalProperties",
-  # │         "message": "Additional properties not allowed: maxAgentLifetime. Paths in payload: '$.properties.agentProfile.maxAgentLifetime'"
-  # │       }
-  # │     ]
-  # │   }
-  # │ }
-  # │ --------------------------------------------------------------------------------
-  #################################################################################################
-
+  role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
+  subscription_id                    = coalesce(var.subscription_id, data.azurerm_client_config.this.subscription_id)
 }

@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Basic Example for Azure DevOps
+# Basic Example for Azure DevOps Managed Pools
 
-This deploys the module in its simplest form with the minimum variable inputs for Azure DevOps with private networking.
+This deploys the module in its simplest form with the minimum variable inputs for Azure Managed DevOps Pools.
 
 ```hcl
 variable "azure_devops_organization_name" {

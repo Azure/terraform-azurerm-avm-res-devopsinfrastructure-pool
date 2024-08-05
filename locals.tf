@@ -19,16 +19,110 @@ locals {
       }
     } : {}
   }
-  # Private endpoint application security group associations.
-  # We merge the nested maps from private endpoints and application security group associations into a single map.
-  private_endpoint_application_security_group_associations = { for assoc in flatten([
-    for pe_k, pe_v in var.private_endpoints : [
-      for asg_k, asg_v in pe_v.application_security_group_associations : {
-        asg_key         = asg_k
-        pe_key          = pe_k
-        asg_resource_id = asg_v
-      }
-    ]
-  ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
+
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
+  subscription_id                    = coalesce(var.subscription_id, data.azurerm_client_config.this.subscription_id)
+
+  daysData = [
+    # Sunday
+    length(keys(var.agentProfileResourcePredictionsManual.sunday)) == 0 || var.agentProfileResourcePredictionsManual.sunday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.sunday.startTime}" = var.agentProfileResourcePredictionsManual.sunday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.sunday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.sunday.endTime}"   = 0
+    },
+    # Monday
+    length(keys(var.agentProfileResourcePredictionsManual.monday)) == 0 || var.agentProfileResourcePredictionsManual.monday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.monday.startTime}" = var.agentProfileResourcePredictionsManual.monday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.monday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.monday.endTime}"   = 0
+    },
+    # Tuesday
+    length(keys(var.agentProfileResourcePredictionsManual.tuesday)) == 0 || var.agentProfileResourcePredictionsManual.tuesday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.tuesday.startTime}" = var.agentProfileResourcePredictionsManual.tuesday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.tuesday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.tuesday.endTime}"   = 0
+    },
+    # Wednesday
+    length(keys(var.agentProfileResourcePredictionsManual.wednesday)) == 0 || var.agentProfileResourcePredictionsManual.wednesday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.wednesday.startTime}" = var.agentProfileResourcePredictionsManual.wednesday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.wednesday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.wednesday.endTime}"   = 0
+    },
+    # Thursday
+    length(keys(var.agentProfileResourcePredictionsManual.thursday)) == 0 || var.agentProfileResourcePredictionsManual.thursday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.thursday.startTime}" = var.agentProfileResourcePredictionsManual.thursday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.thursday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.thursday.endTime}"   = 0
+    },
+    # Friday
+    length(keys(var.agentProfileResourcePredictionsManual.friday)) == 0 || var.agentProfileResourcePredictionsManual.friday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.friday.startTime}" = var.agentProfileResourcePredictionsManual.friday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.friday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.friday.endTime}"   = 0
+    },
+    # Saturday
+    length(keys(var.agentProfileResourcePredictionsManual.saturday)) == 0 || var.agentProfileResourcePredictionsManual.saturday.startTime == null ? {} : {
+      "${var.agentProfileResourcePredictionsManual.saturday.startTime}" = var.agentProfileResourcePredictionsManual.saturday.provisioningCount != null ? var.agentProfileResourcePredictionsManual.saturday.provisioningCount : var.maximumConcurrency
+      "${var.agentProfileResourcePredictionsManual.saturday.endTime}"   = 0
+    }
+  ]
+  organizationProfile = {
+    organizations = [for org in var.organizationProfile.organizations : {
+      url         = "https://dev.azure.com/${org.name}"
+      projects    = org.projects
+      parallelism = org.parallelism != null ? org.parallelism : var.maximumConcurrency
+    }]
+    permissionProfile = {
+      kind   = var.organizationProfile.permission_profile.kind # "CreatorOnly", "Inherit", "SpecificAccounts"
+      users  = var.organizationProfile.permission_profile.kind == "SpecificAccounts" ? var.organizationProfile.permission_profile.users : null
+      groups = var.organizationProfile.permission_profile.kind == "SpecificAccounts" ? var.organizationProfile.permission_profile.groups : null
+    }
+  }
+
+  resourcePredictionsProfile = (
+    var.agentProfileResourcePredictionProfile == "None" ? null :
+    var.agentProfileResourcePredictionProfile == "Automatic" ? var.agentProfileResourcePredictionProfileAutomatic :
+    var.agentProfileResourcePredictionProfile == "Manual" ? var.agentProfileResourcePredictionProfileManual : null
+  )
+
+  # Workaround to avoid Payload API Spec Validation error, having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they had Null value.
+  agentProfileBase = {
+    kind                       = var.agentProfileKind
+    resourcePredictionsProfile = local.resourcePredictionsProfile
+    resourcePredictions = var.agentProfileResourcePredictionProfile == "Manual" ? {
+      timeZone = var.agentProfileResourcePredictionsManual.timeZone
+      daysData = local.daysData
+    } : null
+  }
+
+  agentProfileStateful = var.agentProfileKind == "Stateful" ? {
+    gracePeriodTimeSpan = var.agentProfileGracePeriodTimeSpan
+    maxAgentLifetime    = var.agentProfileMaxAgentLifetime
+  } : {}
+
+  agentProfile = merge(local.agentProfileBase, local.agentProfileStateful)
+
+
+  # The following error was produced when running the unit test and having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they
+  # had Null value, hence the workaround above
+
+  #################################################################################################
+  # │ --------------------------------------------------------------------------------
+  # │ RESPONSE 400: 400 Bad Request
+  # │ ERROR CODE: HttpRequestPayloadAPISpecValidationFailed
+  # │ --------------------------------------------------------------------------------
+  # │ {
+  # │   "error": {
+  # │     "code": "HttpRequestPayloadAPISpecValidationFailed",
+  # │     "target": "Microsoft.DevOpsInfrastructure/pools/avm-mdp-unit-test-pool",
+  # │     "message": "HTTP request payload failed validation against API specification with one or more errors. Please see details for more information.",
+  # │     "details": [
+  # │       {
+  # │         "code": "ObjectAdditionalProperties",
+  # │         "message": "Additional properties not allowed: gracePeriodTimeSpan. Paths in payload: '$.properties.agentProfile.gracePeriodTimeSpan'"
+  # │       },
+  # │       {
+  # │         "code": "ObjectAdditionalProperties",
+  # │         "message": "Additional properties not allowed: maxAgentLifetime. Paths in payload: '$.properties.agentProfile.maxAgentLifetime'"
+  # │       }
+  # │     ]
+  # │   }
+  # │ }
+  # │ --------------------------------------------------------------------------------
+  #################################################################################################
+
 }

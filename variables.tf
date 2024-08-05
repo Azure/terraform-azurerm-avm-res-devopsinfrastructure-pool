@@ -6,13 +6,11 @@ variable "location" {
 
 variable "name" {
   type        = string
-  description = "The name of the this resource."
+  description = "Name of the pool. It needs to be globally unique for each Azure DevOps Organization."
 
   validation {
-    condition     = can(regex("TODO", var.name))
-    error_message = "The name must be TODO." # TODO remove the example below once complete:
-    #condition     = can(regex("^[a-z0-9]{5,50}$", var.name))
-    #error_message = "The name must be between 5 and 50 characters long and can only contain lowercase letters and numbers."
+    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-.]{3,44}$", var.name))
+    error_message = "The name must be between 3 and 44 characters long, start with an alphanumeric character, and can only contain alphanumeric characters, hyphens, and dots."
   }
 }
 
@@ -22,28 +20,348 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
+variable "devCenterProjectResourceId" {
+  type        = string
+  description = "The resource ID of the Dev Center project."
+}
+
+variable "subscription_id" {
+  type        = string
+  description = "The subscription ID to use for the resource."
+  default     = ""
+}
+
+variable "maximumConcurrency" {
+  type        = number
+  description = "The maximum number of agents that can run concurrently."
+  validation {
+    condition     = var.maximumConcurrency >= 1 && var.maximumConcurrency <= 10000
+    error_message = "The maximumConcurrency must be between 1 and 10000."
+  }
+}
+
+variable "agentProfileKind" {
+  type        = string
+  description = "The kind of agent profile."
+  default     = "Stateless"
+  validation {
+    condition     = can(index(["Stateless", "Stateful"], var.agentProfileKind))
+    error_message = "The agentProfileKind must be one of: 'Stateless', 'Stateful'."
+  }
+}
+
+variable "agentProfileGracePeriodTimeSpan" {
+  type        = string
+  description = "How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
+  default     = null
+
+  # validation {
+  #   condition     = var.agentProfileKind == "Stateful" && var.agentProfileGracePeriodTimeSpan != null
+  #   error_message = "The gracePeriodTimeSpan must be set when agentProfileKind is 'Stateful'."
+  # }
+
+  # validation {
+  #   condition     = can(regex("^\\d{1}\\:\\d{2}:\\d{2}:\\d{2}$", var.agentProfileGracePeriodTimeSpan))
+  #   error_message = "The gracePeriodTimeSpan must be in d:hh:mm:ss format."
+  # }
+
+}
+
+variable "agentProfileMaxAgentLifetime" {
+  type        = string
+  description = "The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
+  default     = null
+
+  # validation {
+  #   condition     = var.agentProfileKind == "Stateful" && var.agentProfileMaxAgentLifetime != null
+  #   error_message = "The maxAgentLifetime must be set when agentProfileKind is 'Stateful'."
+  # }
+  # validation {
+  #   condition     = can(regex("^\\d{1}\\:\\d{2}:\\d{2}:\\d{2}$", var.agentProfileMaxAgentLifetime))
+  #   error_message = "The maxAgentLifetime must be in d:hh:mm:ss format."
+  # }
+}
+
+variable "agentProfileResourcePredictionProfile" {
+  type        = string
+  description = "The resource prediction profile for the agent."
+  default     = "None"
+  validation {
+    condition     = can(index(["None", "Manual", "Automatic"], var.agentProfileResourcePredictionProfile))
+    error_message = "The agentProfileResourcePredictionProfile must be one of: 'None', 'Manual', 'Automatic'."
+  }
+}
+
+variable "agentProfileResourcePredictionProfileAutomatic" {
+  type = object({
+    kind                 = string
+    predictionPreference = string
+  })
+  description = "The automatic resource prediction profile for the agent."
+  default = {
+    kind                 = "Automatic"
+    predictionPreference = "Balanced"
+  }
+
+  validation {
+    condition     = var.agentProfileResourcePredictionProfile == "Automatic" || var.agentProfileResourcePredictionProfileAutomatic != null
+    error_message = "The input for agentProfileResourcePredictionProfileAutomatic must be set when agentProfileResourcePredictionProfile is 'Automatic'."
+  }
+
+  validation {
+    condition     = can(index(["Balanced", "MostCostEffective", "MoreCostEffective", "MorePerformance", "BestPerformance"], var.agentProfileResourcePredictionProfileAutomatic.predictionPreference))
+    error_message = "The predictionPreference must be one of: 'Balanced', 'MostCostEffective', 'MoreCostEffective', 'MorePerformance', 'BestPerformance'."
+  }
+}
+
+variable "agentProfileResourcePredictionProfileManual" {
+  type = object({
+    kind = string
+  })
+  description = "The manual resource prediction profile for the agent."
+  default = {
+    kind = "Manual"
+  }
+}
+
+variable "agentProfileResourcePredictionsManual" {
+  type = object({
+    timeZone = optional(string)
+    sunday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+    monday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+    tuesday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+    wednesday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+    thursday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+    friday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+    saturday = optional(object({
+      startTime         = optional(string)
+      endTime           = optional(string)
+      provisioningCount = optional(number)
+    }), {})
+  })
+  default     = {}
+  description = <<DESCRIPTION
+An object representing manual resource predictions for agent profiles, including time zone and optional daily schedules.
+
+- `timeZone` - (Required) The time zone for the agent profile.
+- `sunday` - (Optional) An object representing the schedule for Sunday. Defaults to `{}` which means standby agents will be set to 0 for Sunday.
+  - `startTime` - (Required) The start time for the schedule.
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `monday` - (Optional) An object representing the schedule for Monday. Defaults to `{}` which means standby agents will be set to 0 for Monday.
+  - `startTime` - (Required) The start time for the schedule
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule, if not set, it will use the `var.maximumConcurrency` value.
+- `tuesday` - (Optional) An object representing the schedule for Tuesday. Defaults to `{}` which means standby agents will be set to 0 for Tuesday.
+  - `startTime` - (Required) The start time for the schedule.
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `wednesday` - (Optional) An object representing the schedule for Wednesday. Defaults to `{}` which means standby agents will be set to 0 for Wednesday.
+  - `startTime` - (Required) The start time for the schedule.
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `thursday` - (Optional) An object representing the schedule for Thursday. Defaults to `{}` which means standby agents will be set to 0 for Thursday.
+  - `startTime` - (Required) The start time for the schedule.
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `friday` - (Optional) An object representing the schedule for Friday. Defaults to `{}` which means standby agents will be set to 0 for Friday.
+  - `startTime` - (Required) The start time for the schedule.
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule.
+- `saturday` - (Optional) An object representing the schedule for Saturday. Defaults to `{}` which means standby agents will be set to 0 for Saturday.
+  - `startTime` - (Required) The start time for the schedule.
+  - `endTime` - (Required) The end time for the schedule.
+  - `provisioningCount` - (Required) The number of provisions for the schedule.
+DESCRIPTION
+}
+
+# variable "agentProfile" {
+#   type = object({
+#     kind                = string
+#     gracePeriodTimeSpan = optional(string)
+#     maxAgentLifetime    = optional(string)
+#     resourcePredictionsProfile = optional(object({
+#       kind                 = string
+#       predictionPreference = string
+#     }), null)
+#     resourcePredictions = optional(object({ # TODO: We need to figure out the best way to handle the resourcePredictions object.
+#       preProvisioningQuickStarter = string
+#       timeZone                    = string
+#       provisioningCount           = number
+#     }), null)
+#   })
+#   default = {
+#     kind = "Stateless"
+#   }
+#   description = <<DESCRIPTION
+# An object representing the configuration for an agent profile, including kind, grace period, maximum lifetime, and resource predictions.
+
+# - `kind` - (Required) The type of agent profile. Default is "Stateless".
+# - `gracePeriodTimeSpan` - (Optional) The grace period time span for the agent profile in `dd.hh:mm:ss` format.
+# - `maxAgentLifetime` - (Optional) The maximum lifetime for the agent profile in `dd.hh:mm:ss` format.
+# - `resourcePredictionsProfile` - (Optional) An object representing the resource predictions profile. Defaults to `null`.
+#   - `kind` - (Required) The kind of resource predictions profile.
+#   - `predictionPreference` - (Required) The prediction preference for the resource predictions profile.
+# - `resourcePredictions` - (Optional) An object representing the resource predictions. Defaults to `null`.
+#   - `preProvisioningQuickStarter` - (Required) The pre-provisioning quick starter setting.
+#   - `timeZone` - (Required) The time zone for the resource predictions.
+#   - `provisioningCount` - (Required) The number of provisions for the resource predictions.
+# DESCRIPTION
+
+#   validation {
+#     condition = (
+#       var.agentProfile.gracePeriodTimeSpan == null || can(regex("^\\d{2}\\.\\d{2}:\\d{2}:\\d{2}$", var.agentProfile.gracePeriodTimeSpan)) &&
+#       var.agentProfile.maxAgentLifetime == null || can(regex("^\\d{2}\\.\\d{2}:\\d{2}:\\d{2}$", var.agentProfile.maxAgentLifetime))
+#     )
+#     error_message = "The gracePeriodTimeSpan and maxAgentLifetime must be in dd.hh:mm:ss format or null."
+#   }
+# }
+
+variable "organizationProfile" {
+  type = object({
+    organizations = list(object({
+      name        = string
+      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
+    }))
+    permission_profile = object({
+      kind   = string
+      users  = optional(list(string), null)
+      groups = optional(list(string), null)
+    })
+  })
+  description = <<DESCRIPTION
+An object representing the configuration for an organization profile, including organizations and permission profiles.
+
+- `organizations` - (Required) A list of objects representing the organizations.
+  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
+  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `var.maximumConcurrency`; otherwise, it will use the `var.maximumConcurrency` value as default or the value you define for single Organization.
+- `permission_profile` - (Required) An object representing the permission profile.
+  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
+  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
+  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
+DESCRIPTION
+}
+
+variable "fabricProfileSkuName" {
+  type        = string
+  description = "The SKU name of the fabric profile."
+}
+
+variable "fabricProfileImages" {
+  type = list(object({
+    resourceId         = optional(string)
+    wellKnownImageName = optional(string)
+    buffer             = string
+    aliases            = list(string)
+  }))
+  description = "The list of images to use for the fabric profile."
+}
+
+variable "fabricProfileOsDiskStorageAccountType" {
+  type        = string
+  description = "The storage account type for the OS disk."
+  validation {
+    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabricProfileOsDiskStorageAccountType))
+    error_message = "The osDiskStorageAccountType must be one of: 'Standard', 'Premium', 'StandardSSD'."
+  }
+}
+
+variable "fabricProfileDataDisks" {
+  type = list(object({
+    caching            = optional(string, "ReadWrite")
+    diskSizeGiB        = number
+    driveLetter        = optional(string, null)
+    storageAccountType = optional(string, "Standard_LRS")
+  }))
+  default     = []
+  description = <<DESCRIPTION
+A list of objects representing the configuration for fabric profile data disks.
+
+- `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
+- `diskSizeGiB` - (Required) The size of the data disk in GiB.
+- `driveLetter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
+- `storageAccountType` - (Optional) The storage account type for the data disk. Defaults to "Standard_LRS".
+
+Valid values for `storageAccountType` are:
+- `Premium_LRS`
+- `Premium_ZRS`
+- `StandardSSD_LRS`
+- `Standard_LRS`
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition     = alltrue([for disk in var.fabricProfileDataDisks : can(index(["Standard", "Premium", "StandardSSD"], disk.storageAccountType))])
+    error_message = "The storageAccountType must be one of: 'Premium_LRS', 'Premium_ZRS', 'StandardSSD_LRS', or `Standard_LRS`."
+  }
+}
+
+variable "subnetId" {
+  type        = string
+  description = "The subnet id on which to put all machines created in the pool"
+  default     = null
+  nullable    = true
+}
+
+
+# ## ToDO Need Varables for Multiple Organization Support
+
+# variable "projects" {
+#   type = list(string)
+#   default = []
+#   description = "The list of projects that the agent can run on, defaults to all projects."
+# }
+
+# # Not sure if this is needed, but it's possible in the Portal atm.
+# variable "enable_interactive_mode" {
+#   type = bool
+#   default = false
+#   description = "Enable interactive mode for the agent."
+# }
+
+# variable = "pool_administration_permissions" {
+#   type = object({
+#     kind = string
+#     accounts = optional(list(object({
+#       email_object_id = string
+#       account_type       = string
+#     })), [])
+#   })
+#   default = {
+#     kind = "CreatorOnly"
+#   }
+#   description = "Choose who will be able to administer the pool that will be created, supports 'CreatorOnly', 'Inherit', and 'SpecificAccounts', if 'SpecificAccounts' is chosen, you must provide a list of User Accounts or Groups."
+# }
+
 # required AVM interfaces
 # remove only if not supported by the resource
 # tflint-ignore: terraform_unused_declarations
-variable "customer_managed_key" {
-  type = object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
-    }), null)
-  })
-  default     = null
-  description = <<DESCRIPTION
-A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
-DESCRIPTION  
-}
 
 variable "diagnostic_settings" {
   type = map(object({
@@ -133,70 +451,6 @@ Controls the Managed Identity configuration on this resource. The following prop
 - `system_assigned` - (Optional) Specifies if the System Assigned Managed Identity should be enabled.
 - `user_assigned_resource_ids` - (Optional) Specifies a list of User Assigned Managed Identity resource IDs to be assigned to this resource.
 DESCRIPTION
-  nullable    = false
-}
-
-variable "private_endpoints" {
-  type = map(object({
-    name = optional(string, null)
-    role_assignments = optional(map(object({
-      role_definition_id_or_name             = string
-      principal_id                           = string
-      description                            = optional(string, null)
-      skip_service_principal_aad_check       = optional(bool, false)
-      condition                              = optional(string, null)
-      condition_version                      = optional(string, null)
-      delegated_managed_identity_resource_id = optional(string, null)
-    })), {})
-    lock = optional(object({
-      kind = string
-      name = optional(string, null)
-    }), null)
-    tags                                    = optional(map(string), null)
-    subnet_resource_id                      = string
-    private_dns_zone_group_name             = optional(string, "default")
-    private_dns_zone_resource_ids           = optional(set(string), [])
-    application_security_group_associations = optional(map(string), {})
-    private_service_connection_name         = optional(string, null)
-    network_interface_name                  = optional(string, null)
-    location                                = optional(string, null)
-    resource_group_name                     = optional(string, null)
-    ip_configurations = optional(map(object({
-      name               = string
-      private_ip_address = string
-    })), {})
-  }))
-  default     = {}
-  description = <<DESCRIPTION
-A map of private endpoints to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-
-- `name` - (Optional) The name of the private endpoint. One will be generated if not set.
-- `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
-- `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
-- `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
-- `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
-- `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-- `private_service_connection_name` - (Optional) The name of the private service connection. One will be generated if not set.
-- `network_interface_name` - (Optional) The name of the network interface. One will be generated if not set.
-- `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
-- `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
-- `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
-DESCRIPTION
-  nullable    = false
-}
-
-# This variable is used to determine if the private_dns_zone_group block should be included,
-# or if it is to be managed externally, e.g. using Azure Policy.
-# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
-# Alternatively you can use AzAPI, which does not have this issue.
-variable "private_endpoints_manage_dns_zone_group" {
-  type        = bool
-  default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
   nullable    = false
 }
 

@@ -43,7 +43,7 @@ variable "location" {
 variable "maximum_concurrency" {
   type        = number
   description = "The maximum number of agents that can run concurrently."
-  default     = 10000
+  default     = 5
 
   validation {
     condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000

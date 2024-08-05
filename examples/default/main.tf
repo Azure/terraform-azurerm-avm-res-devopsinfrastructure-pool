@@ -9,12 +9,6 @@ variable "azure_devops_personal_access_token" {
   sensitive   = true
 }
 
-variable "azure_devops_agents_personal_access_token" {
-  description = "Personal access token for Azure DevOps self-hosted agents (the token requires the 'Agent Pools - Read & Manage' scope and should have the maximum expiry)."
-  type        = string
-  sensitive   = true
-}
-
 locals {
   tags = {
     scenario = "default"
@@ -24,6 +18,10 @@ locals {
 terraform {
   required_version = ">= 1.9"
   required_providers {
+    azapi = {
+      source  = "azure/azapi"
+      version = "~> 1.14"
+    }
     azuredevops = {
       source  = "microsoft/azuredevops"
       version = "~> 1.1"
@@ -113,6 +111,7 @@ resource "azuredevops_build_definition" "this" {
 data "azuredevops_agent_queue" "this" {
   project_id = azuredevops_project.this.id
   name = module.managed_devops_pool.name
+  depends_on = [ module.managed_devops_pool ]
 }
 
 resource "azuredevops_pipeline_authorization" "this" {
@@ -127,19 +126,32 @@ resource "azurerm_resource_group" "this" {
   location = local.selected_region
 }
 
-resource "azurerm_resource_provider_registration" "dev_center" {
-  name = "Microsoft.DevCenter"
+locals {
+  resource_providers_to_register = {
+    dev_center = {
+      resource_provider = "Microsoft.DevCenter"
+    }
+    devops_infrastructure = {
+      resource_provider = "Microsoft.DevOpsInfrastructure"
+    }
+  }
 }
 
-resource "azurerm_resource_provider_registration" "devops_infrastructure" {
-  name = "Microsoft.DevOpsInfrastructure"
+data "azurerm_client_config" "this" {}
+
+resource "azapi_resource_action" "resource_provider_registration" {
+  for_each    = local.resource_providers_to_register
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
+  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  action      = "providers/${each.value.resource_provider}/register"
+  method      = "POST"
 }
 
 resource "azurerm_dev_center" "this" {
   name                = "dc-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  depends_on = [ azurerm_resource_provider_registration.dev_center ]
+  depends_on = [ azapi_resource_action.resource_provider_registration ]
 }
 
 resource "azurerm_dev_center_project" "this" {
@@ -163,9 +175,7 @@ module "managed_devops_pool" {
     }]
   }
   tags                                         = local.tags
-  depends_on                                   = [
-    azurerm_resource_provider_registration.devops_infrastructure
-  ]
+  depends_on                                   = [ azapi_resource_action.resource_provider_registration ]
 }
 
 output "managed_devops_pool_id" {
@@ -195,5 +205,5 @@ locals {
     "australiaeast","southeastasia","westus","westus2","westus3","brazilsouth","centralindia","eastasia","eastus","eastus2","canadacentral","centralus","northcentralus","southcentralus","westcentralus","northeurope","westeurope","uksouth"
   ]
   regions         = [for region in module.regions.regions : region.name if !contains(local.excluded_regions, region.name) && contains(local.included_regions, region.name)]
-  selected_region = local.regions[random_integer.region_index.result]
+  selected_region = "eastus" # local.regions[random_integer.region_index.result]
 }

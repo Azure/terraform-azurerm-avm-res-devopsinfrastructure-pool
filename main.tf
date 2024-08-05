@@ -1,4 +1,4 @@
-resource "azapi_resource" "mdp" {
+resource "azapi_resource" "managed_devops_pool" {
   type = "Microsoft.DevOpsInfrastructure/pools@2024-04-04-preview"
   body = {
     properties = {
@@ -45,7 +45,7 @@ resource "azapi_resource" "mdp" {
   location                  = var.location
   name                      = var.name
   parent_id                 = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
-  schema_validation_enabled = true
+  schema_validation_enabled = false
   tags                      = var.tags
 }
 
@@ -55,7 +55,7 @@ resource "azurerm_management_lock" "this" {
 
   lock_level = var.lock.kind
   name       = coalesce(var.lock.name, "lock-${var.lock.kind}")
-  scope      = azapi_resource.mdp.id
+  scope      = azapi_resource.managed_devops_pool.id
   notes      = var.lock.kind == "CanNotDelete" ? "Cannot delete the resource or its child resources." : "Cannot delete or modify the resource or its child resources."
 }
 
@@ -63,7 +63,7 @@ resource "azurerm_role_assignment" "this" {
   for_each = var.role_assignments
 
   principal_id                           = each.value.principal_id
-  scope                                  = azapi_resource.mdp.id
+  scope                                  = azapi_resource.managed_devops_pool.id
   condition                              = each.value.condition
   condition_version                      = each.value.condition_version
   delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id

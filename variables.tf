@@ -1,7 +1,7 @@
 variable "dev_center_project_resource_id" {
   type        = string
-  description = "The resource ID of the Dev Center project."
-  default = null
+  description = "(Required) The resource ID of the Dev Center project."
+  nullable = false
 }
 
 variable "fabric_profile_images" {

@@ -207,5 +207,5 @@ locals {
     "australiaeast", "southeastasia", "westus", "westus2", "westus3", "brazilsouth", "centralindia", "eastasia", "eastus", "eastus2", "canadacentral", "centralus", "northcentralus", "southcentralus", "westcentralus", "northeurope", "westeurope", "uksouth"
   ]
   regions         = [for region in module.regions.regions : region.name if !contains(local.excluded_regions, region.name) && contains(local.included_regions, region.name)]
-  selected_region = "eastus" # local.regions[random_integer.region_index.result]
+  selected_region = "uksouth" # local.regions[random_integer.region_index.result]
 }

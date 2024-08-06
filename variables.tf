@@ -26,7 +26,7 @@ variable "organization_profile" {
     organizations = list(object({
       name        = string
       projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
-      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
     }))
     permission_profile = optional(object({
       kind   = optional(string, "CreatorOnly")
@@ -42,7 +42,7 @@ An object representing the configuration for an organization profile, including 
 - `organizations` - (Required) A list of objects representing the organizations.
   - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
   - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
-  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `var.maximumConcurrency`; otherwise, it will use the `var.maximumConcurrency` value as default or the value you define for single Organization.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
 - `permission_profile` - (Required) An object representing the permission profile.
   - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
   - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
@@ -328,7 +328,7 @@ variable "fabric_profile_os_disk_storage_account_type" {
 variable "fabric_profile_sku_name" {
   type        = string
   default     = "Standard_D2ads_v5"
-  description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximumConcurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximumConcurrency is 2, you will need quota for 4 vCPU Cores and so on."
+  description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximum_concurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximum_concurrency is 2, you will need quota for 4 vCPU Cores and so on."
 }
 
 variable "lock" {
@@ -368,12 +368,12 @@ DESCRIPTION
 
 variable "maximum_concurrency" {
   type        = number
-  default     = 5
-  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1."
+  default     = 2
+  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 2."
 
   validation {
     condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000
-    error_message = "The maximumConcurrency must be between 1 and 10000. Defaults to 10000"
+    error_message = "The maximum_concurrency must be between 1 and 10000. Defaults to 10000"
   }
 }
 

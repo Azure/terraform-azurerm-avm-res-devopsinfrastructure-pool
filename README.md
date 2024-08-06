@@ -24,6 +24,7 @@ The following resources are used by this module:
 
 - [azapi_resource.managed_devops_pool](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
+- [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
@@ -53,39 +54,6 @@ Type: `string`
 Description: Name of the pool. It needs to be globally unique for each Azure DevOps Organization.
 
 Type: `string`
-
-### <a name="input_organization_profile"></a> [organization\_profile](#input\_organization\_profile)
-
-Description: An object representing the configuration for an organization profile, including organizations and permission profiles.
-
-- `organizations` - (Required) A list of objects representing the organizations.
-  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
-  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
-  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `var.maximumConcurrency`; otherwise, it will use the `var.maximumConcurrency` value as default or the value you define for single Organization.
-- `permission_profile` - (Required) An object representing the permission profile.
-  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
-  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
-  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
-
-Type:
-
-```hcl
-object({
-    kind = optional(string, "AzureDevOps")
-    organizations = list(object({
-      name        = string
-      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
-      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the var.maximumConcurrency value.
-    }))
-    permission_profile = optional(object({
-      kind   = optional(string, "CreatorOnly")
-      users  = optional(list(string), null)
-      groups = optional(list(string), null)
-      }), {
-      kind = "CreatorOnly"
-    })
-  })
-```
 
 ### <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name)
 
@@ -366,7 +334,7 @@ Default: `"Premium"`
 
 ### <a name="input_fabric_profile_sku_name"></a> [fabric\_profile\_sku\_name](#input\_fabric\_profile\_sku\_name)
 
-Description: The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximumConcurrency` value, make sure you request enough quota, defaults to 'Standard\_D2ads\_v5' which has 2 vCPU Cores. so if maximumConcurrency is 2, you will need quota for 4 vCPU Cores and so on.
+Description: The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximum_concurrency` value, make sure you request enough quota, defaults to 'Standard\_D2ads\_v5' which has 2 vCPU Cores. so if maximum\_concurrency is 2, you will need quota for 4 vCPU Cores and so on.
 
 Type: `string`
 
@@ -414,7 +382,46 @@ Description: The maximum number of agents that can run concurrently, must be bet
 
 Type: `number`
 
-Default: `5`
+Default: `1`
+
+### <a name="input_organization_profile"></a> [organization\_profile](#input\_organization\_profile)
+
+Description: An object representing the configuration for an organization profile, including organizations and permission profiles.
+
+This is for advanced use cases where you need to specify permissions and multiple organization.
+
+If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
+
+- `organizations` - (Required) A list of objects representing the organizations.
+  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
+  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
+- `permission_profile` - (Required) An object representing the permission profile.
+  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
+  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
+  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
+
+Type:
+
+```hcl
+object({
+    kind = optional(string, "AzureDevOps")
+    organizations = list(object({
+      name        = string
+      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
+    }))
+    permission_profile = optional(object({
+      kind   = optional(string, "CreatorOnly")
+      users  = optional(list(string), null)
+      groups = optional(list(string), null)
+      }), {
+      kind = "CreatorOnly"
+    })
+  })
+```
+
+Default: `null`
 
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
@@ -447,7 +454,7 @@ Default: `{}`
 
 ### <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id)
 
-Description: The subnet id on which to put all machines created in the pool
+Description: The virtual network subnet resource id to use for private networking.
 
 Type: `string`
 
@@ -455,7 +462,7 @@ Default: `null`
 
 ### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
 
-Description: The subscription ID to use for the resource.
+Description: The subscription ID to use for the resource. Only required if you want to target a different subscription the the current context.
 
 Type: `string`
 
@@ -468,6 +475,30 @@ Description: (Optional) Tags of the resource.
 Type: `map(string)`
 
 Default: `null`
+
+### <a name="input_version_control_system_organization_name"></a> [version\_control\_system\_organization\_name](#input\_version\_control\_system\_organization\_name)
+
+Description: The name of the version control system organization. This is required if `organization_profile` is not supplied.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_version_control_system_project_names"></a> [version\_control\_system\_project\_names](#input\_version\_control\_system\_project\_names)
+
+Description: The name of the version control system project. This is optional if `organization_profile` is not supplied.
+
+Type: `set(string)`
+
+Default: `[]`
+
+### <a name="input_version_control_system_type"></a> [version\_control\_system\_type](#input\_version\_control\_system\_type)
+
+Description: The type of version control system. This is shortcut alternative to `organization_profile.kind`. Possible values are 'azuredevops' or 'github'.
+
+Type: `string`
+
+Default: `"azuredevops"`
 
 ## Outputs
 

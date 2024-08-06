@@ -20,36 +20,6 @@ variable "name" {
   }
 }
 
-variable "organization_profile" {
-  type = object({
-    kind = optional(string, "AzureDevOps")
-    organizations = list(object({
-      name        = string
-      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
-      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
-    }))
-    permission_profile = optional(object({
-      kind   = optional(string, "CreatorOnly")
-      users  = optional(list(string), null)
-      groups = optional(list(string), null)
-      }), {
-      kind = "CreatorOnly"
-    })
-  })
-  description = <<DESCRIPTION
-An object representing the configuration for an organization profile, including organizations and permission profiles.
-
-- `organizations` - (Required) A list of objects representing the organizations.
-  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
-  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
-  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
-- `permission_profile` - (Required) An object representing the permission profile.
-  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
-  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
-  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
-DESCRIPTION
-}
-
 # This is required for most resource modules
 variable "resource_group_name" {
   type        = string
@@ -368,13 +338,48 @@ DESCRIPTION
 
 variable "maximum_concurrency" {
   type        = number
-  default     = 2
-  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 2."
+  default     = 1
+  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1."
 
   validation {
     condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000
     error_message = "The maximum_concurrency must be between 1 and 10000. Defaults to 10000"
   }
+}
+
+variable "organization_profile" {
+  type = object({
+    kind = optional(string, "AzureDevOps")
+    organizations = list(object({
+      name        = string
+      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
+    }))
+    permission_profile = optional(object({
+      kind   = optional(string, "CreatorOnly")
+      users  = optional(list(string), null)
+      groups = optional(list(string), null)
+      }), {
+      kind = "CreatorOnly"
+    })
+  })
+  default     = null
+  description = <<DESCRIPTION
+An object representing the configuration for an organization profile, including organizations and permission profiles. 
+
+This is for advanced use cases where you need to specify permissions and multiple organization. 
+
+If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
+
+- `organizations` - (Required) A list of objects representing the organizations.
+  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
+  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
+- `permission_profile` - (Required) An object representing the permission profile.
+  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
+  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
+  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
+DESCRIPTION
 }
 
 variable "role_assignments" {
@@ -406,18 +411,42 @@ DESCRIPTION
 variable "subnet_id" {
   type        = string
   default     = null
-  description = "The subnet id on which to put all machines created in the pool"
+  description = "The virtual network subnet resource id to use for private networking."
 }
 
 variable "subscription_id" {
   type        = string
   default     = null
-  description = "The subscription ID to use for the resource."
+  description = "The subscription ID to use for the resource. Only required if you want to target a different subscription the the current context."
 }
 
-# tflint-ignore: terraform_unused_declarations
 variable "tags" {
   type        = map(string)
   default     = null
   description = "(Optional) Tags of the resource."
+}
+
+variable "version_control_system_organization_name" {
+  type        = string
+  default     = null
+  description = "The name of the version control system organization. This is required if `organization_profile` is not supplied."
+}
+
+variable "version_control_system_project_names" {
+  type        = set(string)
+  default     = []
+  description = "The name of the version control system project. This is optional if `organization_profile` is not supplied."
+  nullable    = false
+}
+
+variable "version_control_system_type" {
+  type        = string
+  default     = "azuredevops"
+  description = "The type of version control system. This is shortcut alternative to `organization_profile.kind`. Possible values are 'azuredevops' or 'github'."
+  nullable    = false
+
+  validation {
+    condition     = can(index(["azuredevops", "github"], var.version_control_system_type))
+    error_message = "The version_control_system_type must be one of: 'azuredevops' or 'github'."
+  }
 }

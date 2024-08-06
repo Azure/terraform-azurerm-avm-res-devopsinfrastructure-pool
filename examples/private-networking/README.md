@@ -3,6 +3,11 @@
 
 This deploys the module with Private Networking for Azure Managed DevOps Pools.
 
+There are some points of note for this example:
+
+- There is a special built in service principal called `DevOpsInfrastructure` that is used to join the Managed DevOps Pool to the Virtual Network Subnet. This service principal must be granted role assignments to the virtual network and subnet for this to work. You can read more here: <https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal#to-check-the-devopsinfrastructure-principal-access>
+- In the example we have created a custom role in order to demonstrate least privilege access, but you can also use the built in `Network Contributor` role.
+
 ```hcl
 variable "azure_devops_organization_name" {
   type        = string
@@ -132,6 +137,12 @@ resource "azurerm_resource_group" "this" {
   name     = "rg-${random_string.name.result}"
 }
 
+resource "azurerm_log_analytics_workspace" "this" {
+  location            = azurerm_resource_group.this.location
+  name                = module.naming.log_analytics_workspace.name_unique
+  resource_group_name = azurerm_resource_group.this.name
+}
+
 locals {
   resource_providers_to_register = {
     dev_center = {
@@ -154,6 +165,25 @@ resource "azapi_resource_action" "resource_provider_registration" {
   method      = "POST"
 }
 
+resource "azurerm_role_definition" "this" {
+  name        = "Virtual Network Contributor for DevOpsInfrastructure (${random_string.name.result})"
+  scope       = azurerm_resource_group.this.id
+  description = "Custom Role for Virtual Network Contributor for DevOpsInfrastructure (${random_string.name.result})"
+
+  permissions {
+    actions = [
+      "Microsoft.Network/virtualNetworks/subnets/join/action",
+      "Microsoft.Network/virtualNetworks/subnets/serviceAssociationLinks/validate/action",
+      "Microsoft.Network/virtualNetworks/subnets/serviceAssociationLinks/write",
+      "Microsoft.Network/virtualNetworks/subnets/serviceAssociationLinks/delete"
+    ]
+  }
+}
+
+data "azuread_service_principal" "this" {
+  display_name = "DevOpsInfrastructure" # This is a special built in service principal (see: https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal#to-check-the-devopsinfrastructure-principal-access)
+}
+
 module "vnet" {
   source              = "Azure/avm-res-network-virtualnetwork/azurerm"
   version             = "0.4.0"
@@ -161,6 +191,16 @@ module "vnet" {
   location            = azurerm_resource_group.this.location
   name                = "vnet-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
+  role_assignments = {
+    virtual_network_reader = {
+      role_definition_id_or_name = "Reader"
+      principal_id               = data.azuread_service_principal.this.object_id
+    }
+    subnet_join = {
+      role_definition_id_or_name = azurerm_role_definition.this.role_definition_resource_id
+      principal_id               = data.azuread_service_principal.this.object_id
+    }
+  }
   subnets = {
     subnet0 = {
       name             = "subnet-${random_string.name.result}"
@@ -173,31 +213,6 @@ module "vnet" {
       }]
     }
   }
-}
-
-locals {
-  role_assignment_for_network_resources = {
-    "Network Contributor" = module.vnet.resource_id
-    "Reader"              = module.vnet.resource_id
-  }
-}
-
-data "azuread_service_principal" "this" {
-  display_name = "DevOpsInfrastructure"
-}
-
-resource "azurerm_role_assignment" "name" {
-  for_each = local.role_assignment_for_network_resources
-
-  principal_id         = data.azuread_service_principal.this.object_id
-  scope                = each.value
-  role_definition_name = each.key
-}
-
-resource "time_sleep" "this" {
-  create_duration = "30s"
-
-  depends_on = [azurerm_role_assignment.name]
 }
 
 resource "azurerm_dev_center" "this" {
@@ -229,8 +244,18 @@ module "managed_devops_pool" {
       projects = [azuredevops_project.this.name]
     }]
   }
-  tags       = local.tags
-  depends_on = [azapi_resource_action.resource_provider_registration, time_sleep.this]
+  /* diagnostic_settings = {
+    sendToLogAnalytics = {
+      name                           = "sendToLogAnalytics"
+      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
+      log_analytics_destination_type = "Dedicated"
+    }
+  } */
+  tags = local.tags
+  depends_on = [
+    azapi_resource_action.resource_provider_registration,
+    module.vnet
+  ]
 }
 
 output "managed_devops_pool_id" {
@@ -265,10 +290,10 @@ locals {
     "westeurope" # Capacity issues
   ]
   included_regions = [
-    "australiaeast", "southeastasia", "westus", "westus2", "westus3", "brazilsouth", "centralindia", "eastasia", "eastus", "eastus2", "canadacentral", "centralus", "northcentralus", "southcentralus", "westcentralus", "northeurope", "westeurope", "uksouth"
+    "australiaeast", "brazilsouth", "canadacentral", "centralus", "westeurope", "germanywestcentral", "italynorth", "japaneast", "uksouth", "eastus", "eastus2", "southafricanorth", "southcentralus", "southeastasia", "switzerlandnorth", "swedencentral", "westus3", "centralindia", "eastasia", "northeurope", "koreacentral"
   ]
   regions         = [for region in module.regions.regions : region.name if !contains(local.excluded_regions, region.name) && contains(local.included_regions, region.name)]
-  selected_region = "eastus" # local.regions[random_integer.region_index.result]
+  selected_region = "uksouth" # local.regions[random_integer.region_index.result]
 }
 ```
 
@@ -299,11 +324,11 @@ The following resources are used by this module:
 - [azuredevops_project.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/project) (resource)
 - [azurerm_dev_center.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center) (resource)
 - [azurerm_dev_center_project.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project) (resource)
+- [azurerm_log_analytics_workspace.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [azurerm_role_assignment.name](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_role_definition.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_definition) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 - [random_string.name](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) (resource)
-- [time_sleep.this](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 - [azuread_service_principal.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/service_principal) (data source)
 - [azuredevops_agent_queue.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/data-sources/agent_queue) (data source)
 - [azurerm_client_config.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)

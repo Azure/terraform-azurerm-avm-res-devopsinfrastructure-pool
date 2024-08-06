@@ -165,19 +165,15 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                         = "../.."
-  resource_group_name            = azurerm_resource_group.this.name
-  location                       = azurerm_resource_group.this.location
-  name                           = random_string.name.result
-  dev_center_project_resource_id = azurerm_dev_center_project.this.id
-  organization_profile = {
-    organizations = [{
-      name     = var.azure_devops_organization_name
-      projects = [azuredevops_project.this.name]
-    }]
-  }
-  tags       = local.tags
-  depends_on = [azapi_resource_action.resource_provider_registration]
+  source                                   = "../.."
+  resource_group_name                      = azurerm_resource_group.this.name
+  location                                 = azurerm_resource_group.this.location
+  name                                     = random_string.name.result
+  dev_center_project_resource_id           = azurerm_dev_center_project.this.id
+  version_control_system_organization_name = var.azure_devops_organization_name
+  version_control_system_project_names     = [azuredevops_project.this.name]
+  tags                                     = local.tags
+  depends_on                               = [azapi_resource_action.resource_provider_registration]
 }
 
 output "managed_devops_pool_id" {
@@ -204,7 +200,7 @@ locals {
     "westeurope" # Capacity issues
   ]
   included_regions = [
-    "australiaeast", "southeastasia", "westus", "westus2", "westus3", "brazilsouth", "centralindia", "eastasia", "eastus", "eastus2", "canadacentral", "centralus", "northcentralus", "southcentralus", "westcentralus", "northeurope", "westeurope", "uksouth"
+    "australiaeast", "brazilsouth", "canadacentral", "centralus", "westeurope", "germanywestcentral", "italynorth", "japaneast", "uksouth", "eastus", "eastus2", "southafricanorth", "southcentralus", "southeastasia", "switzerlandnorth", "swedencentral", "westus3", "centralindia", "eastasia", "northeurope", "koreacentral"
   ]
   regions         = [for region in module.regions.regions : region.name if !contains(local.excluded_regions, region.name) && contains(local.included_regions, region.name)]
   selected_region = "uksouth" # local.regions[random_integer.region_index.result]

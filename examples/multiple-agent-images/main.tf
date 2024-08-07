@@ -5,7 +5,7 @@ variable "azure_devops_organization_name" {
 
 variable "azure_devops_personal_access_token" {
   type        = string
-  description = "The personal access token used for agent authentication to Azure DevOps."
+  description = "The personal access token used for authentication to Azure DevOps."
   sensitive   = true
 }
 

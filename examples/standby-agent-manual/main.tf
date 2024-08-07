@@ -169,22 +169,30 @@ module "managed_devops_pool" {
   version_control_system_project_names      = [azuredevops_project.this.name]
   agent_profile_resource_prediction_profile = "Manual"
 
-  #agent_profile_resource_predictions_manual = {  # This is an example of how to specify 2 constant standby agents. For 1 constant standby agent you don't need to define this block.
+  # This is an example of how to specify 2 constant standby agents. For 1 constant standby agent you don't need to define this block.
+
+  # agent_profile_resource_predictions_manual = {
   #  time_zone = "UTC"
   #  days_data = [{
   #    "00:00": 2
   #  }]
-  #}
+  # }
 
-  #agent_profile_resource_predictions_manual = {  # This is an example of how to specify 2 standby agents scaling up to 2 at 08:00 UTC and scaling down to 0 at 18:00 UTC every day of the week.
+
+  # This is an example of how to specify 2 standby agents scaling up to 2 at 08:00 UTC and scaling down to 0 at 18:00 UTC every day of the week.
+
+  # agent_profile_resource_predictions_manual = {
   #  time_zone = "UTC"
   #  days_data = [{
   #    "08:00": 2
   #    "18:00": 0
   #  }]
-  #}
+  # }
 
-  # agent_profile_resource_predictions_manual = {  # This is an example of how to specify scaling agents only on weekdays (Monday to Friday). It scales to 1 at 06:00 UTC, 2 at 08:00 UTC, 1 at 18:00 UTC and 0 at 20:00 UTC.
+
+  # This is an example of how to specify scaling agents only on weekdays (Monday to Friday). It scales to 1 at 06:00 UTC, 2 at 08:00 UTC, 1 at 18:00 UTC and 0 at 20:00 UTC.
+
+  # agent_profile_resource_predictions_manual = {
   #   time_zone = "UTC"
   #   days_data = [
   #     # Sunday

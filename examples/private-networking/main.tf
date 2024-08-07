@@ -57,11 +57,6 @@ resource "random_string" "name" {
   upper   = false
 }
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
-}
-
 resource "azuredevops_project" "this" {
   name = random_string.name.result
 }
@@ -128,7 +123,7 @@ resource "azurerm_resource_group" "this" {
 
 resource "azurerm_log_analytics_workspace" "this" {
   location            = azurerm_resource_group.this.location
-  name                = module.naming.log_analytics_workspace.name_unique
+  name                = "law-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
 }
 
@@ -173,6 +168,26 @@ data "azuread_service_principal" "this" {
   display_name = "DevOpsInfrastructure" # This is a special built in service principal (see: https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal#to-check-the-devopsinfrastructure-principal-access)
 }
 
+resource "azurerm_public_ip" "this" {
+  allocation_method   = "Static"
+  location            = azurerm_resource_group.this.location
+  name                = "pip-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  sku                 = "Standard"
+}
+
+resource "azurerm_nat_gateway" "this" {
+  location            = azurerm_resource_group.this.location
+  name                = "nat-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  sku_name            = "Standard"
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "this" {
+  nat_gateway_id       = azurerm_nat_gateway.this.id
+  public_ip_address_id = azurerm_public_ip.this.id
+}
+
 module "vnet" {
   source              = "Azure/avm-res-network-virtualnetwork/azurerm"
   version             = "0.4.0"
@@ -200,6 +215,9 @@ module "vnet" {
           name = "Microsoft.DevOpsInfrastructure/pools"
         }
       }]
+      nat_gateway = {
+        id = azurerm_nat_gateway.this.id
+      }
     }
   }
 }

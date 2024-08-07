@@ -57,11 +57,6 @@ resource "random_string" "name" {
   upper   = false
 }
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
-}
-
 resource "azuredevops_project" "this" {
   name = random_string.name.result
 }

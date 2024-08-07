@@ -1,3 +1,9 @@
+variable "dev_center_project_resource_id" {
+  type        = string
+  description = "(Required) The resource ID of the Dev Center project."
+  nullable    = false
+}
+
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
@@ -6,13 +12,11 @@ variable "location" {
 
 variable "name" {
   type        = string
-  description = "The name of the this resource."
+  description = "Name of the pool. It needs to be globally unique for each Azure DevOps Organization."
 
   validation {
-    condition     = can(regex("TODO", var.name))
-    error_message = "The name must be TODO." # TODO remove the example below once complete:
-    #condition     = can(regex("^[a-z0-9]{5,50}$", var.name))
-    #error_message = "The name must be between 5 and 50 characters long and can only contain lowercase letters and numbers."
+    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-.]{3,44}$", var.name))
+    error_message = "The name must be between 3 and 44 characters long, start with an alphanumeric character, and can only contain alphanumeric characters, hyphens, and dots."
   }
 }
 
@@ -22,27 +26,172 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
-# required AVM interfaces
-# remove only if not supported by the resource
-# tflint-ignore: terraform_unused_declarations
-variable "customer_managed_key" {
-  type = object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
-    }), null)
-  })
+variable "agent_profile_grace_period_time_span" {
+  type        = string
   default     = null
+  description = "How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
+}
+
+variable "agent_profile_kind" {
+  type        = string
+  default     = "Stateless"
+  description = "The kind of agent profile."
+
+  validation {
+    condition     = can(index(["Stateless", "Stateful"], var.agent_profile_kind))
+    error_message = "The agent_profile_kind must be one of: 'Stateless', 'Stateful'."
+  }
+}
+
+variable "agent_profile_max_agent_lifetime" {
+  type        = string
+  default     = null
+  description = "The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`."
+}
+
+variable "agent_profile_resource_prediction_profile" {
+  type        = string
+  default     = "Off"
+  description = "The resource prediction profile for the agent, a.k.a `Stand by agent mode`, supported values are 'Off', 'Manual', 'Automatic', defaults to 'Off'."
+
+  validation {
+    condition     = can(index(["Off", "Manual", "Automatic"], var.agent_profile_resource_prediction_profile))
+    error_message = "The agent_profile_resource_prediction_profile must be one of: 'None', 'Manual', 'Automatic'."
+  }
+}
+
+variable "agent_profile_resource_prediction_profile_automatic" {
+  type = object({
+    kind                  = optional(string, "Automatic")
+    prediction_preference = optional(string, "Balanced")
+  })
+  default = {
+    kind                  = "Automatic"
+    prediction_preference = "Balanced"
+  }
   description = <<DESCRIPTION
-A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
-DESCRIPTION  
+The automatic resource prediction profile for the agent.
+
+The object can have the following attributes:
+- `kind` - (Required) The kind of prediction profile. Default is "Automatic".
+- `prediction_preference` - (Required) The preference for resource prediction. Supported values are `Balanced`, `MostCostEffective`, `MoreCostEffective`, `MorePerformance`, and `BestPerformance`.
+DESCRIPTION
+
+  validation {
+    condition     = var.agent_profile_resource_prediction_profile == "Automatic" || var.agent_profile_resource_prediction_profile_automatic != null
+    error_message = "The input for agent_profile_resource_prediction_profile_automatic must be set when agent_profile_resource_prediction_profile is 'Automatic'."
+  }
+  validation {
+    condition     = can(index(["Balanced", "MostCostEffective", "MoreCostEffective", "MorePerformance", "BestPerformance"], var.agent_profile_resource_prediction_profile_automatic.prediction_preference))
+    error_message = "The prediction_preference must be one of: 'Balanced', 'MostCostEffective', 'MoreCostEffective', 'MorePerformance', 'BestPerformance'."
+  }
+}
+
+variable "agent_profile_resource_prediction_profile_manual" {
+  type = object({
+    kind = string
+  })
+  default = {
+    kind = "Manual"
+  }
+  description = "The manual resource prediction profile for the agent."
+}
+
+variable "agent_profile_resource_predictions_manual" {
+  type = object({
+    time_zone = optional(string, "UTC")
+    days_data = optional(list(map(number)))
+  })
+  default = {
+    days_data = [
+      {
+        "00:00:00" = 1
+      }
+    ]
+  }
+  description = <<DESCRIPTION
+An object representing manual resource predictions for agent profiles, including time zone and optional daily schedules.
+
+- `time_zone` - (Optional) The time zone for the agent profile. E.g. "Eastern Standard Time". Defaults to `UTC`. To see valid values for this run this command in PowerShell: `[System.TimeZoneInfo]::GetSystemTimeZones() | Select Id, BaseUtcOffSet`
+- `days_data` - (Optional) A list representing the manual schedules. Defaults to a single standby agent constantly running.
+
+The `days_data` list should contain one or seven maps. Supply one to apply the same schedule each day. Supply seven for a different schedule each day.
+
+Examples: 
+
+- To set always having 1 agent available, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    days_data = [
+      {
+        "00:00:00" = 1
+      }
+    ]
+  }
+  ```
+
+- To set the schedule for every day to scale to one agent at 8:00 AM and scale down to zero agents at 5:00 PM, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    time_zone = "Eastern Standard Time"
+    days_data = [
+      {
+        "08:00:00" = 1
+        "17:00:00" = 0
+      }
+    ]
+  }
+  ```
+
+- To set a different schedule for each day, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    time_zone = "Eastern Standard Time"
+    days_data = [
+      # Sunday
+      {}, # Empty map to skip Sunday
+      # Monday
+      {
+        "03:00:00" = 2  # Scale to 2 agents at 3:00 AM
+        "08:00:00" = 4  # Scale to 4 agents at 8:00 AM
+        "17:00:00" = 2  # Scale to 2 agents at 5:00 PM
+        "22:00:00" = 0  # Scale to 0 agents at 10:00 PM
+      },
+      # Tuesday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Wednesday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Thursday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Friday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Saturday
+      {} # Empty map to skip Saturday
+    ]
+  }
+  ```
+
+DESCRIPTION
+
+  validation {
+    condition     = var.agent_profile_resource_predictions_manual.days_data == null ? true : contains([1, 7], length(var.agent_profile_resource_predictions_manual.days_data))
+    error_message = "The days_data list must contain one or seven maps."
+  }
 }
 
 variable "diagnostic_settings" {
@@ -101,6 +250,77 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "fabric_profile_data_disks" {
+  type = list(object({
+    caching              = optional(string, "ReadWrite")
+    disk_size_gigabytes  = optional(number, 100)
+    drive_letter         = optional(string, null)
+    storage_account_type = optional(string, "Premium_ZRS")
+  }))
+  default     = []
+  description = <<DESCRIPTION
+A list of objects representing the configuration for fabric profile data disks.
+
+- `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
+- `disk_size_gigabytes` - (Optional) The size of the data disk in GiB. Defaults to 100GB.
+- `drive_letter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
+- `storage_account_type` - (Optional) The storage account type for the data disk. Defaults to "Premium_ZRS".
+
+Valid values for `storage_account_type` are:
+- `Premium_LRS`
+- `Premium_ZRS`
+- `StandardSSD_LRS`
+- `Standard_LRS`
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition     = alltrue([for disk in var.fabric_profile_data_disks : can(index(["Premium_LRS", "Premium_ZRS", "StandardSSD_LRS", "Standard_LRS"], disk.storage_account_type))])
+    error_message = "The storageAccountType must be one of: 'Premium_LRS', 'Premium_ZRS', 'StandardSSD_LRS', or `Standard_LRS`."
+  }
+}
+
+variable "fabric_profile_images" {
+  type = list(object({
+    resource_id           = optional(string)
+    well_known_image_name = optional(string)
+    buffer                = optional(string, "*")
+    aliases               = optional(list(string))
+  }))
+  default = [{
+    well_known_image_name = "ubuntu-22.04/latest"
+    aliases = [
+      "ubuntu-22.04/latest"
+    ]
+  }]
+  description = <<DESCRIPTION
+The list of images to use for the fabric profile.
+
+Each object in the list can have the following attributes:
+- `resource_id` - (Optional) The resource ID of the image, this can either be resource ID of a Standard Azure VM Image or a Image that is hosted within Azure Image Gallery.
+- `well_known_image_name` - (Optional) The well-known name of the image, thid is used to reference the well-known images that are available on Microsoft Hosted Agents, supported images are `ubuntu-22.04/latest`, `ubuntu-20.04/latest`, `windows-2022/latest`, and `windows-2019/latest`.
+- `buffer` - (Optional) The buffer associated with the image.
+- `aliases` - (Required) A list of aliases for the image.
+DESCRIPTION
+}
+
+variable "fabric_profile_os_disk_storage_account_type" {
+  type        = string
+  default     = "Premium"
+  description = "The storage account type for the OS disk, possible values are 'Standard', 'Premium' and 'StandardSSD', defaults to 'Premium'."
+
+  validation {
+    condition     = can(index(["Standard", "Premium", "StandardSSD"], var.fabric_profile_os_disk_storage_account_type))
+    error_message = "The fabric_profile_os_disk_storage_account_type must be one of: 'Standard', 'Premium', 'StandardSSD'."
+  }
+}
+
+variable "fabric_profile_sku_name" {
+  type        = string
+  default     = "Standard_D2ads_v5"
+  description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximum_concurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximum_concurrency is 2, you will need quota for 4 vCPU Cores and so on."
+}
+
 variable "lock" {
   type = object({
     kind = string
@@ -136,68 +356,50 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "private_endpoints" {
-  type = map(object({
-    name = optional(string, null)
-    role_assignments = optional(map(object({
-      role_definition_id_or_name             = string
-      principal_id                           = string
-      description                            = optional(string, null)
-      skip_service_principal_aad_check       = optional(bool, false)
-      condition                              = optional(string, null)
-      condition_version                      = optional(string, null)
-      delegated_managed_identity_resource_id = optional(string, null)
-    })), {})
-    lock = optional(object({
-      kind = string
-      name = optional(string, null)
-    }), null)
-    tags                                    = optional(map(string), null)
-    subnet_resource_id                      = string
-    private_dns_zone_group_name             = optional(string, "default")
-    private_dns_zone_resource_ids           = optional(set(string), [])
-    application_security_group_associations = optional(map(string), {})
-    private_service_connection_name         = optional(string, null)
-    network_interface_name                  = optional(string, null)
-    location                                = optional(string, null)
-    resource_group_name                     = optional(string, null)
-    ip_configurations = optional(map(object({
-      name               = string
-      private_ip_address = string
-    })), {})
-  }))
-  default     = {}
-  description = <<DESCRIPTION
-A map of private endpoints to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+variable "maximum_concurrency" {
+  type        = number
+  default     = 1
+  description = "The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1."
 
-- `name` - (Optional) The name of the private endpoint. One will be generated if not set.
-- `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
-- `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
-- `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
-- `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
-- `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-- `private_service_connection_name` - (Optional) The name of the private service connection. One will be generated if not set.
-- `network_interface_name` - (Optional) The name of the network interface. One will be generated if not set.
-- `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
-- `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
-- `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
-DESCRIPTION
-  nullable    = false
+  validation {
+    condition     = var.maximum_concurrency >= 1 && var.maximum_concurrency <= 10000
+    error_message = "The maximum_concurrency must be between 1 and 10000. Defaults to 10000"
+  }
 }
 
-# This variable is used to determine if the private_dns_zone_group block should be included,
-# or if it is to be managed externally, e.g. using Azure Policy.
-# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
-# Alternatively you can use AzAPI, which does not have this issue.
-variable "private_endpoints_manage_dns_zone_group" {
-  type        = bool
-  default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
-  nullable    = false
+variable "organization_profile" {
+  type = object({
+    kind = optional(string, "AzureDevOps")
+    organizations = list(object({
+      name        = string
+      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
+    }))
+    permission_profile = optional(object({
+      kind   = optional(string, "CreatorOnly")
+      users  = optional(list(string), null)
+      groups = optional(list(string), null)
+      }), {
+      kind = "CreatorOnly"
+    })
+  })
+  default     = null
+  description = <<DESCRIPTION
+An object representing the configuration for an organization profile, including organizations and permission profiles. 
+
+This is for advanced use cases where you need to specify permissions and multiple organization. 
+
+If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
+
+- `organizations` - (Required) A list of objects representing the organizations.
+  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
+  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
+- `permission_profile` - (Required) An object representing the permission profile.
+  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
+  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
+  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
+DESCRIPTION
 }
 
 variable "role_assignments" {
@@ -209,26 +411,65 @@ variable "role_assignments" {
     condition                              = optional(string, null)
     condition_version                      = optional(string, null)
     delegated_managed_identity_resource_id = optional(string, null)
+    principal_type                         = optional(string, null)
   }))
   default     = {}
   description = <<DESCRIPTION
-A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+A map of role assignments to create on the <RESOURCE>. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
 - `principal_id` - The ID of the principal to assign the role to.
-- `description` - The description of the role assignment.
-- `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
-- `condition` - The condition which will be used to scope the role assignment.
-- `condition_version` - The version of the condition syntax. Valid values are '2.0'.
+- `description` - (Optional) The description of the role assignment.
+- `skip_service_principal_aad_check` - (Optional) If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
+- `condition` - (Optional) The condition which will be used to scope the role assignment.
+- `condition_version` - (Optional) The version of the condition syntax. Leave as `null` if you are not using a condition, if you are then valid values are '2.0'.
+- `delegated_managed_identity_resource_id` - (Optional) The delegated Azure Resource Id which contains a Managed Identity. Changing this forces a new resource to be created. This field is only used in cross-tenant scenario.
+- `principal_type` - (Optional) The type of the `principal_id`. Possible values are `User`, `Group` and `ServicePrincipal`. It is necessary to explicitly set this attribute when creating role assignments if the principal creating the assignment is constrained by ABAC rules that filters on the PrincipalType attribute.
 
 > Note: only set `skip_service_principal_aad_check` to true if you are assigning a role to a service principal.
 DESCRIPTION
   nullable    = false
 }
 
-# tflint-ignore: terraform_unused_declarations
+variable "subnet_id" {
+  type        = string
+  default     = null
+  description = "The virtual network subnet resource id to use for private networking."
+}
+
+variable "subscription_id" {
+  type        = string
+  default     = null
+  description = "The subscription ID to use for the resource. Only required if you want to target a different subscription the the current context."
+}
+
 variable "tags" {
   type        = map(string)
   default     = null
   description = "(Optional) Tags of the resource."
+}
+
+variable "version_control_system_organization_name" {
+  type        = string
+  default     = null
+  description = "The name of the version control system organization. This is required if `organization_profile` is not supplied."
+}
+
+variable "version_control_system_project_names" {
+  type        = set(string)
+  default     = []
+  description = "The name of the version control system project. This is optional if `organization_profile` is not supplied."
+  nullable    = false
+}
+
+variable "version_control_system_type" {
+  type        = string
+  default     = "azuredevops"
+  description = "The type of version control system. This is shortcut alternative to `organization_profile.kind`. Possible values are 'azuredevops' or 'github'."
+  nullable    = false
+
+  validation {
+    condition     = can(index(["azuredevops", "github"], var.version_control_system_type))
+    error_message = "The version_control_system_type must be one of: 'azuredevops' or 'github'."
+  }
 }

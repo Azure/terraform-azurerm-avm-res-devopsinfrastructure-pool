@@ -160,16 +160,30 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                   = "../.."
-  resource_group_name                      = azurerm_resource_group.this.name
-  location                                 = azurerm_resource_group.this.location
-  name                                     = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id           = azurerm_dev_center_project.this.id
-  version_control_system_organization_name = var.azure_devops_organization_name
-  version_control_system_project_names     = [azuredevops_project.this.name]
-  enable_telemetry                         = var.enable_telemetry
-  tags                                     = local.tags
-  depends_on                               = [azapi_resource_action.resource_provider_registration]
+  source                                    = "../.."
+  resource_group_name                       = azurerm_resource_group.this.name
+  location                                  = azurerm_resource_group.this.location
+  name                                      = "mdp-${random_string.name.result}"
+  dev_center_project_resource_id            = azurerm_dev_center_project.this.id
+  version_control_system_organization_name  = var.azure_devops_organization_name
+  version_control_system_project_names      = [azuredevops_project.this.name]
+  agent_profile_resource_prediction_profile = "Automatic"
+  enable_telemetry                          = var.enable_telemetry
+
+  # This example sets the standby agent automatic scaling to the most cost effective option. This block is not required for `Balanced`.
+
+  # agent_profile_resource_prediction_profile_automatic = {
+  #   prediction_preference = "MostCostEffective"
+  # }
+
+  # This example sets the standby agent automatic scaling to the best performance option. This block is not required for `Balanced`.
+
+  # agent_profile_resource_prediction_profile_automatic = {
+  #   prediction_preference = "BestPerformance"
+  # }
+
+  tags       = local.tags
+  depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
 output "managed_devops_pool_id" {

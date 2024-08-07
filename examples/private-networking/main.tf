@@ -22,6 +22,10 @@ terraform {
       source  = "azure/azapi"
       version = "~> 1.14"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.53"
+    }
     azuredevops = {
       source  = "microsoft/azuredevops"
       version = "~> 1.1"
@@ -121,6 +125,12 @@ resource "azurerm_resource_group" "this" {
   name     = "rg-${random_string.name.result}"
 }
 
+resource "azurerm_log_analytics_workspace" "this" {
+  location            = azurerm_resource_group.this.location
+  name                = "law-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+}
+
 locals {
   resource_providers_to_register = {
     dev_center = {
@@ -143,6 +153,80 @@ resource "azapi_resource_action" "resource_provider_registration" {
   method      = "POST"
 }
 
+resource "azurerm_role_definition" "this" {
+  name        = "Virtual Network Contributor for DevOpsInfrastructure (${random_string.name.result})"
+  scope       = azurerm_resource_group.this.id
+  description = "Custom Role for Virtual Network Contributor for DevOpsInfrastructure (${random_string.name.result})"
+
+  permissions {
+    actions = [
+      "Microsoft.Network/virtualNetworks/subnets/join/action",
+      "Microsoft.Network/virtualNetworks/subnets/serviceAssociationLinks/validate/action",
+      "Microsoft.Network/virtualNetworks/subnets/serviceAssociationLinks/write",
+      "Microsoft.Network/virtualNetworks/subnets/serviceAssociationLinks/delete"
+    ]
+  }
+}
+
+data "azuread_service_principal" "this" {
+  display_name = "DevOpsInfrastructure" # This is a special built in service principal (see: https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal#to-check-the-devopsinfrastructure-principal-access)
+}
+
+resource "azurerm_public_ip" "this" {
+  allocation_method   = "Static"
+  location            = azurerm_resource_group.this.location
+  name                = "pip-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  sku                 = "Standard"
+}
+
+resource "azurerm_nat_gateway" "this" {
+  location            = azurerm_resource_group.this.location
+  name                = "nat-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  sku_name            = "Standard"
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "this" {
+  nat_gateway_id       = azurerm_nat_gateway.this.id
+  public_ip_address_id = azurerm_public_ip.this.id
+}
+
+module "virtual_network" {
+  source              = "Azure/avm-res-network-virtualnetwork/azurerm"
+  version             = "0.4.0"
+  address_space       = ["10.30.0.0/16"]
+  location            = azurerm_resource_group.this.location
+  name                = "vnet-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  role_assignments = {
+    virtual_network_reader = {
+      role_definition_id_or_name = "Reader"
+      principal_id               = data.azuread_service_principal.this.object_id
+    }
+    subnet_join = {
+      role_definition_id_or_name = azurerm_role_definition.this.role_definition_resource_id
+      principal_id               = data.azuread_service_principal.this.object_id
+    }
+  }
+  subnets = {
+    subnet0 = {
+      name             = "subnet-${random_string.name.result}"
+      address_prefixes = ["10.30.0.0/24"]
+      delegation = [{
+        name = "Microsoft.DevOpsInfrastructure.pools"
+        service_delegation = {
+          name = "Microsoft.DevOpsInfrastructure/pools"
+        }
+      }]
+      nat_gateway = {
+        id = azurerm_nat_gateway.this.id
+      }
+    }
+  }
+  enable_telemetry = var.enable_telemetry
+}
+
 resource "azurerm_dev_center" "this" {
   location            = azurerm_resource_group.this.location
   name                = "dc-${random_string.name.result}"
@@ -160,16 +244,31 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                   = "../.."
-  resource_group_name                      = azurerm_resource_group.this.name
-  location                                 = azurerm_resource_group.this.location
-  name                                     = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id           = azurerm_dev_center_project.this.id
-  version_control_system_organization_name = var.azure_devops_organization_name
-  version_control_system_project_names     = [azuredevops_project.this.name]
-  enable_telemetry                         = var.enable_telemetry
-  tags                                     = local.tags
-  depends_on                               = [azapi_resource_action.resource_provider_registration]
+  source                         = "../.."
+  resource_group_name            = azurerm_resource_group.this.name
+  location                       = azurerm_resource_group.this.location
+  name                           = "mdp-${random_string.name.result}"
+  dev_center_project_resource_id = azurerm_dev_center_project.this.id
+  subnet_id                      = module.virtual_network.subnets["subnet0"].resource_id
+  organization_profile = {
+    organizations = [{
+      name     = var.azure_devops_organization_name
+      projects = [azuredevops_project.this.name]
+    }]
+  }
+  enable_telemetry = var.enable_telemetry
+  /* diagnostic_settings = {
+    sendToLogAnalytics = {
+      name                           = "sendToLogAnalytics"
+      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
+      log_analytics_destination_type = "Dedicated"
+    }
+  } */
+  tags = local.tags
+  depends_on = [
+    azapi_resource_action.resource_provider_registration,
+    module.virtual_network
+  ]
 }
 
 output "managed_devops_pool_id" {
@@ -178,6 +277,14 @@ output "managed_devops_pool_id" {
 
 output "managed_devops_pool_name" {
   value = module.managed_devops_pool.name
+}
+
+output "virtual_network_id" {
+  value = module.virtual_network.resource_id
+}
+
+output "virtual_network_subnets" {
+  value = module.virtual_network.subnets
 }
 
 # Region helpers

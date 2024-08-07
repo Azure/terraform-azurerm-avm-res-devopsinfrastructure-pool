@@ -1,7 +1,9 @@
 <!-- BEGIN_TF_DOCS -->
-# Example of deploying DevOps Managed Pools with Public Networking
+# Example of deploying DevOps Managed Pools with multiple Agent Images and Public Networking
 
-This deploys the module in its simplest form with the minimum variable inputs for Azure Managed DevOps Pools. It uses public networking.
+This deploys the module in with multiple agent images for Azure Managed DevOps Pools. It uses public networking.
+
+In the example we have two pipeline definitions, each of which has a demand specifiy the agent image to use.
 
 ```hcl
 variable "azure_devops_organization_name" {
@@ -68,9 +70,10 @@ resource "azuredevops_project" "this" {
 }
 
 locals {
-  default_branch  = "refs/heads/main"
-  pipeline_file   = "pipeline.yml"
-  repository_name = "example-repo"
+  default_branch          = "refs/heads/main"
+  pipeline_file_ubuntu_20 = "pipeline-ubuntu-20.yml"
+  pipeline_file_ubuntu_22 = "pipeline-ubuntu-22.yml"
+  repository_name         = "example-repo"
 }
 
 resource "azuredevops_git_repository" "this" {
@@ -82,10 +85,10 @@ resource "azuredevops_git_repository" "this" {
   }
 }
 
-resource "azuredevops_git_repository_file" "this" {
+resource "azuredevops_git_repository_file" "ubuntu_2004" {
   repository_id = azuredevops_git_repository.this.id
-  file          = local.pipeline_file
-  content = templatefile("${path.module}/${local.pipeline_file}", {
+  file          = local.pipeline_file_ubuntu_20
+  content = templatefile("${path.module}/${local.pipeline_file_ubuntu_20}", {
     agent_pool_name = module.managed_devops_pool.name
   })
   branch              = local.default_branch
@@ -93,9 +96,20 @@ resource "azuredevops_git_repository_file" "this" {
   overwrite_on_create = true
 }
 
-resource "azuredevops_build_definition" "this" {
+resource "azuredevops_git_repository_file" "ubuntu_2204" {
+  repository_id = azuredevops_git_repository.this.id
+  file          = local.pipeline_file_ubuntu_22
+  content = templatefile("${path.module}/${local.pipeline_file_ubuntu_22}", {
+    agent_pool_name = module.managed_devops_pool.name
+  })
+  branch              = local.default_branch
+  commit_message      = "[skip ci]"
+  overwrite_on_create = true
+}
+
+resource "azuredevops_build_definition" "ubuntu_2004" {
   project_id = azuredevops_project.this.id
-  name       = "Example Build Definition"
+  name       = "Example Build Definition Ubuntu 20.04"
 
   ci_trigger {
     use_yaml = true
@@ -105,7 +119,23 @@ resource "azuredevops_build_definition" "this" {
     repo_type   = "TfsGit"
     repo_id     = azuredevops_git_repository.this.id
     branch_name = azuredevops_git_repository.this.default_branch
-    yml_path    = local.pipeline_file
+    yml_path    = local.pipeline_file_ubuntu_20
+  }
+}
+
+resource "azuredevops_build_definition" "ubuntu_2204" {
+  project_id = azuredevops_project.this.id
+  name       = "Example Build Definition Ubuntu 22.04"
+
+  ci_trigger {
+    use_yaml = true
+  }
+
+  repository {
+    repo_type   = "TfsGit"
+    repo_id     = azuredevops_git_repository.this.id
+    branch_name = azuredevops_git_repository.this.default_branch
+    yml_path    = local.pipeline_file_ubuntu_22
   }
 }
 
@@ -115,11 +145,18 @@ data "azuredevops_agent_queue" "this" {
   depends_on = [module.managed_devops_pool]
 }
 
-resource "azuredevops_pipeline_authorization" "this" {
+resource "azuredevops_pipeline_authorization" "ubuntu_2004" {
   project_id  = azuredevops_project.this.id
   resource_id = data.azuredevops_agent_queue.this.id
   type        = "queue"
-  pipeline_id = azuredevops_build_definition.this.id
+  pipeline_id = azuredevops_build_definition.ubuntu_2004.id
+}
+
+resource "azuredevops_pipeline_authorization" "ubuntu_2204" {
+  project_id  = azuredevops_project.this.id
+  resource_id = data.azuredevops_agent_queue.this.id
+  type        = "queue"
+  pipeline_id = azuredevops_build_definition.ubuntu_2204.id
 }
 
 resource "azurerm_resource_group" "this" {
@@ -173,9 +210,23 @@ module "managed_devops_pool" {
   dev_center_project_resource_id           = azurerm_dev_center_project.this.id
   version_control_system_organization_name = var.azure_devops_organization_name
   version_control_system_project_names     = [azuredevops_project.this.name]
-  enable_telemetry                         = var.enable_telemetry
-  tags                                     = local.tags
-  depends_on                               = [azapi_resource_action.resource_provider_registration]
+  fabric_profile_images = [
+    {
+      well_known_image_name = "ubuntu-20.04/latest"
+      aliases = [
+        "ubuntu-20.04/latest"
+      ]
+    },
+    {
+      well_known_image_name = "ubuntu-22.04/latest"
+      aliases = [
+        "ubuntu-22.04/latest"
+      ]
+    }
+  ]
+  enable_telemetry = var.enable_telemetry
+  tags             = local.tags
+  depends_on       = [azapi_resource_action.resource_provider_registration]
 }
 
 output "managed_devops_pool_id" {
@@ -229,10 +280,13 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azapi_resource_action.resource_provider_registration](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource_action) (resource)
-- [azuredevops_build_definition.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
+- [azuredevops_build_definition.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
+- [azuredevops_build_definition.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
 - [azuredevops_git_repository.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository) (resource)
-- [azuredevops_git_repository_file.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
-- [azuredevops_pipeline_authorization.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
+- [azuredevops_git_repository_file.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
+- [azuredevops_git_repository_file.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
+- [azuredevops_pipeline_authorization.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
+- [azuredevops_pipeline_authorization.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
 - [azuredevops_project.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/project) (resource)
 - [azurerm_dev_center.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center) (resource)
 - [azurerm_dev_center_project.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project) (resource)

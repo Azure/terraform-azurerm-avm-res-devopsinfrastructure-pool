@@ -1,27 +1,41 @@
 <!-- BEGIN_TF_DOCS -->
-# terraform-azurerm-avm-template
+# Azure Verified Module for Managed DevOps Pools
 
-This is a template repo for Terraform Azure Verified Modules.
+This module deploys and configures Managed DevOps Pools.
 
-Things to do:
+## Features
 
-1. Set up a GitHub repo environment called `test`.
-1. Configure environment protection rule to ensure that approval is required before deploying to this environment.
-1. Install Docker Desktop to run tests
+This module allows you to deploy Managed DevOps Pools with the following features:
 
-> [!IMPORTANT]
-> As the overall AVM framework is not GA (generally available) yet - the CI framework and test automation is not fully functional and implemented across all supported languages yet - breaking changes are expected, and additional customer feedback is yet to be gathered and incorporated. Hence, modules **MUST NOT** be published at version `1.0.0` or higher at this time.
->
-> All module **MUST** be published as a pre-release version (e.g., `0.1.0`, `0.1.1`, `0.2.0`, etc.) until the AVM framework becomes GA.
->
-> However, it is important to note that this **DOES NOT** mean that the modules cannot be consumed and utilized. They **CAN** be leveraged in all types of environments (dev, test, prod etc.). Consumers can treat them just like any other IaC module and raise issues or feature requests against them as they learn from the usage of the module. Consumers should also read the release notes for each version, if considering updating to a more recent version of a module to see if there are any considerations or breaking changes etc.
+- Public or Private Networking
+- Multiple Agent Images
+- Manual and Automatic Standby Agent Scaling
+
+## Usage
+
+This example deploys a Managed DevOps Pool with private networking.
+
+```hcl
+module "managed_devops_pool" {
+  source                                   = "Azure/avm-res-devopsinfrastructure-pool/azurerm"
+  resource_group_name                      = "my-resource-group"
+  location                                 = "uksouth"
+  name                                     = "my-managed-devops-pool"
+  dev_center_project_resource_id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-resource-group/providers/Microsoft.DevCenter/Projects/my-project"
+  version_control_system_organization_name = "my-organization"
+  version_control_system_project_names     = ["my-project"]
+  subnet_id                                = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-resource-group/providers/Microsoft.Network/virtualNetworks/my-vnet/subnets/my-subnet"
+}
+```
 
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
+
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.71)
 
@@ -29,35 +43,30 @@ The following requirements are needed by this module:
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 
-## Providers
-
-The following providers are used by this module:
-
-- <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) (~> 3.71)
-
-- <a name="provider_modtm"></a> [modtm](#provider\_modtm) (~> 0.3)
-
-- <a name="provider_random"></a> [random](#provider\_random) (~> 3.5)
-
 ## Resources
 
 The following resources are used by this module:
 
+- [azapi_resource.managed_devops_pool](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
-- [azurerm_private_endpoint.this_managed_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint.this_unmanaged_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint_application_security_group_association.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint_application_security_group_association) (resource)
-- [azurerm_resource_group.TODO](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
 - [azurerm_client_config.telemetry](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
+- [azurerm_client_config.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
 - [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
 
 The following input variables are required:
+
+### <a name="input_dev_center_project_resource_id"></a> [dev\_center\_project\_resource\_id](#input\_dev\_center\_project\_resource\_id)
+
+Description: (Required) The resource ID of the Dev Center project.
+
+Type: `string`
 
 ### <a name="input_location"></a> [location](#input\_location)
 
@@ -67,7 +76,7 @@ Type: `string`
 
 ### <a name="input_name"></a> [name](#input\_name)
 
-Description: The name of the this resource.
+Description: Name of the pool. It needs to be globally unique for each Azure DevOps Organization.
 
 Type: `string`
 
@@ -81,29 +90,182 @@ Type: `string`
 
 The following input variables are optional (have default values):
 
-### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
+### <a name="input_agent_profile_grace_period_time_span"></a> [agent\_profile\_grace\_period\_time\_span](#input\_agent\_profile\_grace\_period\_time\_span)
 
-Description: A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
+Description: How long should the stateful machines be kept around. Maximum value is 7 days and the format must be in `d:hh:mm:ss`.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_agent_profile_kind"></a> [agent\_profile\_kind](#input\_agent\_profile\_kind)
+
+Description: The kind of agent profile.
+
+Type: `string`
+
+Default: `"Stateless"`
+
+### <a name="input_agent_profile_max_agent_lifetime"></a> [agent\_profile\_max\_agent\_lifetime](#input\_agent\_profile\_max\_agent\_lifetime)
+
+Description: The maximum lifetime of the agent. Maximum value is 7 days and the format must be in `d:hh:mm:ss`.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_agent_profile_resource_prediction_profile"></a> [agent\_profile\_resource\_prediction\_profile](#input\_agent\_profile\_resource\_prediction\_profile)
+
+Description: The resource prediction profile for the agent, a.k.a `Stand by agent mode`, supported values are 'Off', 'Manual', 'Automatic', defaults to 'Off'.
+
+Type: `string`
+
+Default: `"Off"`
+
+### <a name="input_agent_profile_resource_prediction_profile_automatic"></a> [agent\_profile\_resource\_prediction\_profile\_automatic](#input\_agent\_profile\_resource\_prediction\_profile\_automatic)
+
+Description: The automatic resource prediction profile for the agent.
+
+The object can have the following attributes:
+- `kind` - (Required) The kind of prediction profile. Default is "Automatic".
+- `prediction_preference` - (Required) The preference for resource prediction. Supported values are `Balanced`, `MostCostEffective`, `MoreCostEffective`, `MorePerformance`, and `BestPerformance`.
 
 Type:
 
 ```hcl
 object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
-    }), null)
+    kind                  = optional(string, "Automatic")
+    prediction_preference = optional(string, "Balanced")
   })
 ```
 
-Default: `null`
+Default:
+
+```json
+{
+  "kind": "Automatic",
+  "prediction_preference": "Balanced"
+}
+```
+
+### <a name="input_agent_profile_resource_prediction_profile_manual"></a> [agent\_profile\_resource\_prediction\_profile\_manual](#input\_agent\_profile\_resource\_prediction\_profile\_manual)
+
+Description: The manual resource prediction profile for the agent.
+
+Type:
+
+```hcl
+object({
+    kind = string
+  })
+```
+
+Default:
+
+```json
+{
+  "kind": "Manual"
+}
+```
+
+### <a name="input_agent_profile_resource_predictions_manual"></a> [agent\_profile\_resource\_predictions\_manual](#input\_agent\_profile\_resource\_predictions\_manual)
+
+Description: An object representing manual resource predictions for agent profiles, including time zone and optional daily schedules.
+
+- `time_zone` - (Optional) The time zone for the agent profile. E.g. "Eastern Standard Time". Defaults to `UTC`. To see valid values for this run this command in PowerShell: `[System.TimeZoneInfo]::GetSystemTimeZones() | Select Id, BaseUtcOffSet`
+- `days_data` - (Optional) A list representing the manual schedules. Defaults to a single standby agent constantly running.
+
+The `days_data` list should contain one or seven maps. Supply one to apply the same schedule each day. Supply seven for a different schedule each day.
+
+Examples:
+
+- To set always having 1 agent available, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    days_data = [
+      {
+        "00:00:00" = 1
+      }
+    ]
+  }
+```
+
+- To set the schedule for every day to scale to one agent at 8:00 AM and scale down to zero agents at 5:00 PM, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    time_zone = "Eastern Standard Time"
+    days_data = [
+      {
+        "08:00:00" = 1
+        "17:00:00" = 0
+      }
+    ]
+  }
+```
+
+- To set a different schedule for each day, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    time_zone = "Eastern Standard Time"
+    days_data = [
+      # Sunday
+      {}, # Empty map to skip Sunday
+      # Monday
+      {
+        "03:00:00" = 2  # Scale to 2 agents at 3:00 AM
+        "08:00:00" = 4  # Scale to 4 agents at 8:00 AM
+        "17:00:00" = 2  # Scale to 2 agents at 5:00 PM
+        "22:00:00" = 0  # Scale to 0 agents at 10:00 PM
+      },
+      # Tuesday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Wednesday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Thursday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Friday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Saturday
+      {} # Empty map to skip Saturday
+    ]
+  }
+```
+
+Type:
+
+```hcl
+object({
+    time_zone = optional(string, "UTC")
+    days_data = optional(list(map(number)))
+  })
+```
+
+Default:
+
+```json
+{
+  "days_data": [
+    {
+      "00:00:00": 1
+    }
+  ]
+}
+```
 
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
@@ -149,6 +311,84 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_fabric_profile_data_disks"></a> [fabric\_profile\_data\_disks](#input\_fabric\_profile\_data\_disks)
+
+Description: A list of objects representing the configuration for fabric profile data disks.
+
+- `caching` - (Optional) The caching setting for the data disk. Valid values are `None`, `ReadOnly`, and `ReadWrite`. Defaults to `ReadWrite`.
+- `disk_size_gigabytes` - (Optional) The size of the data disk in GiB. Defaults to 100GB.
+- `drive_letter` - (Optional) The drive letter for the data disk, If you have any Windows agent images in your pool, choose a drive letter for your disk. If you don't specify a drive letter, `F` is used for VM sizes with a temporary disk; otherwise `E` is used. The drive letter must be a single letter except A, C, D, or E. If you are using a VM size without a temporary disk and want `E` as your drive letter, leave Drive Letter empty to get the default value of `E`.
+- `storage_account_type` - (Optional) The storage account type for the data disk. Defaults to "Premium\_ZRS".
+
+Valid values for `storage_account_type` are:
+- `Premium_LRS`
+- `Premium_ZRS`
+- `StandardSSD_LRS`
+- `Standard_LRS`
+
+Type:
+
+```hcl
+list(object({
+    caching              = optional(string, "ReadWrite")
+    disk_size_gigabytes  = optional(number, 100)
+    drive_letter         = optional(string, null)
+    storage_account_type = optional(string, "Premium_ZRS")
+  }))
+```
+
+Default: `[]`
+
+### <a name="input_fabric_profile_images"></a> [fabric\_profile\_images](#input\_fabric\_profile\_images)
+
+Description: The list of images to use for the fabric profile.
+
+Each object in the list can have the following attributes:
+- `resource_id` - (Optional) The resource ID of the image, this can either be resource ID of a Standard Azure VM Image or a Image that is hosted within Azure Image Gallery.
+- `well_known_image_name` - (Optional) The well-known name of the image, thid is used to reference the well-known images that are available on Microsoft Hosted Agents, supported images are `ubuntu-22.04/latest`, `ubuntu-20.04/latest`, `windows-2022/latest`, and `windows-2019/latest`.
+- `buffer` - (Optional) The buffer associated with the image.
+- `aliases` - (Required) A list of aliases for the image.
+
+Type:
+
+```hcl
+list(object({
+    resource_id           = optional(string)
+    well_known_image_name = optional(string)
+    buffer                = optional(string, "*")
+    aliases               = optional(list(string))
+  }))
+```
+
+Default:
+
+```json
+[
+  {
+    "aliases": [
+      "ubuntu-22.04/latest"
+    ],
+    "well_known_image_name": "ubuntu-22.04/latest"
+  }
+]
+```
+
+### <a name="input_fabric_profile_os_disk_storage_account_type"></a> [fabric\_profile\_os\_disk\_storage\_account\_type](#input\_fabric\_profile\_os\_disk\_storage\_account\_type)
+
+Description: The storage account type for the OS disk, possible values are 'Standard', 'Premium' and 'StandardSSD', defaults to 'Premium'.
+
+Type: `string`
+
+Default: `"Premium"`
+
+### <a name="input_fabric_profile_sku_name"></a> [fabric\_profile\_sku\_name](#input\_fabric\_profile\_sku\_name)
+
+Description: The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximum_concurrency` value, make sure you request enough quota, defaults to 'Standard\_D2ads\_v5' which has 2 vCPU Cores. so if maximum\_concurrency is 2, you will need quota for 4 vCPU Cores and so on.
+
+Type: `string`
+
+Default: `"Standard_D2ads_v5"`
+
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
 Description: Controls the Resource Lock configuration for this resource. The following properties can be specified:
@@ -185,80 +425,65 @@ object({
 
 Default: `{}`
 
-### <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints)
+### <a name="input_maximum_concurrency"></a> [maximum\_concurrency](#input\_maximum\_concurrency)
 
-Description: A map of private endpoints to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+Description: The maximum number of agents that can run concurrently, must be between 1 and 10000, defaults to 1.
 
-- `name` - (Optional) The name of the private endpoint. One will be generated if not set.
-- `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
-- `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
-- `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
-- `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
-- `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-- `private_service_connection_name` - (Optional) The name of the private service connection. One will be generated if not set.
-- `network_interface_name` - (Optional) The name of the network interface. One will be generated if not set.
-- `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
-- `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
-- `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
+Type: `number`
+
+Default: `1`
+
+### <a name="input_organization_profile"></a> [organization\_profile](#input\_organization\_profile)
+
+Description: An object representing the configuration for an organization profile, including organizations and permission profiles.
+
+This is for advanced use cases where you need to specify permissions and multiple organization.
+
+If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
+
+- `organizations` - (Required) A list of objects representing the organizations.
+  - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
+  - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
+  - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
+- `permission_profile` - (Required) An object representing the permission profile.
+  - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
+  - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.
+  - `groups` - (Optional) A list of groups for the permission profile, supported value is the `ObjectID` of the group. Defaults to `null`.
 
 Type:
 
 ```hcl
-map(object({
-    name = optional(string, null)
-    role_assignments = optional(map(object({
-      role_definition_id_or_name             = string
-      principal_id                           = string
-      description                            = optional(string, null)
-      skip_service_principal_aad_check       = optional(bool, false)
-      condition                              = optional(string, null)
-      condition_version                      = optional(string, null)
-      delegated_managed_identity_resource_id = optional(string, null)
-    })), {})
-    lock = optional(object({
-      kind = string
-      name = optional(string, null)
-    }), null)
-    tags                                    = optional(map(string), null)
-    subnet_resource_id                      = string
-    private_dns_zone_group_name             = optional(string, "default")
-    private_dns_zone_resource_ids           = optional(set(string), [])
-    application_security_group_associations = optional(map(string), {})
-    private_service_connection_name         = optional(string, null)
-    network_interface_name                  = optional(string, null)
-    location                                = optional(string, null)
-    resource_group_name                     = optional(string, null)
-    ip_configurations = optional(map(object({
-      name               = string
-      private_ip_address = string
-    })), {})
-  }))
+object({
+    kind = optional(string, "AzureDevOps")
+    organizations = list(object({
+      name        = string
+      projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
+      parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
+    }))
+    permission_profile = optional(object({
+      kind   = optional(string, "CreatorOnly")
+      users  = optional(list(string), null)
+      groups = optional(list(string), null)
+      }), {
+      kind = "CreatorOnly"
+    })
+  })
 ```
 
-Default: `{}`
-
-### <a name="input_private_endpoints_manage_dns_zone_group"></a> [private\_endpoints\_manage\_dns\_zone\_group](#input\_private\_endpoints\_manage\_dns\_zone\_group)
-
-Description: Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy.
-
-Type: `bool`
-
-Default: `true`
+Default: `null`
 
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
-Description: A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+Description: A map of role assignments to create on the <RESOURCE>. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
 - `principal_id` - The ID of the principal to assign the role to.
-- `description` - The description of the role assignment.
-- `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
-- `condition` - The condition which will be used to scope the role assignment.
-- `condition_version` - The version of the condition syntax. Valid values are '2.0'.
+- `description` - (Optional) The description of the role assignment.
+- `skip_service_principal_aad_check` - (Optional) If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
+- `condition` - (Optional) The condition which will be used to scope the role assignment.
+- `condition_version` - (Optional) The version of the condition syntax. Leave as `null` if you are not using a condition, if you are then valid values are '2.0'.
+- `delegated_managed_identity_resource_id` - (Optional) The delegated Azure Resource Id which contains a Managed Identity. Changing this forces a new resource to be created. This field is only used in cross-tenant scenario.
+- `principal_type` - (Optional) The type of the `principal_id`. Possible values are `User`, `Group` and `ServicePrincipal`. It is necessary to explicitly set this attribute when creating role assignments if the principal creating the assignment is constrained by ABAC rules that filters on the PrincipalType attribute.
 
 > Note: only set `skip_service_principal_aad_check` to true if you are assigning a role to a service principal.
 
@@ -273,10 +498,27 @@ map(object({
     condition                              = optional(string, null)
     condition_version                      = optional(string, null)
     delegated_managed_identity_resource_id = optional(string, null)
+    principal_type                         = optional(string, null)
   }))
 ```
 
 Default: `{}`
+
+### <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id)
+
+Description: The virtual network subnet resource id to use for private networking.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
+
+Description: The subscription ID to use for the resource. Only required if you want to target a different subscription the the current context.
+
+Type: `string`
+
+Default: `null`
 
 ### <a name="input_tags"></a> [tags](#input\_tags)
 
@@ -286,17 +528,45 @@ Type: `map(string)`
 
 Default: `null`
 
+### <a name="input_version_control_system_organization_name"></a> [version\_control\_system\_organization\_name](#input\_version\_control\_system\_organization\_name)
+
+Description: The name of the version control system organization. This is required if `organization_profile` is not supplied.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_version_control_system_project_names"></a> [version\_control\_system\_project\_names](#input\_version\_control\_system\_project\_names)
+
+Description: The name of the version control system project. This is optional if `organization_profile` is not supplied.
+
+Type: `set(string)`
+
+Default: `[]`
+
+### <a name="input_version_control_system_type"></a> [version\_control\_system\_type](#input\_version\_control\_system\_type)
+
+Description: The type of version control system. This is shortcut alternative to `organization_profile.kind`. Possible values are 'azuredevops' or 'github'.
+
+Type: `string`
+
+Default: `"azuredevops"`
+
 ## Outputs
 
 The following outputs are exported:
 
-### <a name="output_private_endpoints"></a> [private\_endpoints](#output\_private\_endpoints)
+### <a name="output_name"></a> [name](#output\_name)
 
-Description:   A map of the private endpoints created.
+Description: The name of the Managed DevOps Pool.
 
 ### <a name="output_resource"></a> [resource](#output\_resource)
 
-Description: This is the full output for the resource.
+Description: This is the full output for the Managed DevOps Pool.
+
+### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
+
+Description: The resource if of the Managed DevOps Pool.
 
 ## Modules
 

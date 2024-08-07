@@ -1,4 +1,3 @@
-# TODO: insert locals here.
 locals {
   agent_profile = merge(local.agent_profile_base, local.agent_profile_stateful)
   # Workaround to avoid Payload API Spec Validation error, having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they had Null value.
@@ -9,6 +8,10 @@ locals {
       timeZone = var.agent_profile_resource_predictions_manual.time_zone
       daysData = var.agent_profile_resource_predictions_manual.days_data
     } : null
+  }
+  agent_profile_resource_prediction_profile_automatic = {
+    kind                 = var.agent_profile_resource_prediction_profile_automatic.kind
+    predictionPreference = var.agent_profile_resource_prediction_profile_automatic.prediction_preference
   }
   agent_profile_stateful = var.agent_profile_kind == "Stateful" ? {
     gracePeriodTimeSpan = var.agent_profile_grace_period_time_span
@@ -61,7 +64,7 @@ locals {
   organization_profile_input = var.organization_profile != null ? var.organization_profile : local.default_organization_profile
   resource_prediction_profile = (
     var.agent_profile_resource_prediction_profile == "Off" ? null :
-    var.agent_profile_resource_prediction_profile == "Automatic" ? var.agent_profile_resource_prediction_profile_automatic :
+    var.agent_profile_resource_prediction_profile == "Automatic" ? local.agent_profile_resource_prediction_profile_automatic :
     var.agent_profile_resource_prediction_profile == "Manual" ? var.agent_profile_resource_prediction_profile_manual : null
   )
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"

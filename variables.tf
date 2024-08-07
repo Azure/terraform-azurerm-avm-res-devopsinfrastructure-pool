@@ -62,8 +62,8 @@ variable "agent_profile_resource_prediction_profile" {
 
 variable "agent_profile_resource_prediction_profile_automatic" {
   type = object({
-    kind                  = string
-    prediction_preference = string
+    kind                  = optional(string, "Automatic")
+    prediction_preference = optional(string, "Balanced")
   })
   default = {
     kind                  = "Automatic"

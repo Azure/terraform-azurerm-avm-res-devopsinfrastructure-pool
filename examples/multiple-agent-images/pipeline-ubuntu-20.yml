@@ -1,0 +1,11 @@
+trigger:
+- main
+
+pool: 
+  name: ${agent_pool_name}
+  demands:
+  - ImageOverride -equals ubuntu-20.04/latest
+
+steps:
+- script: echo Hello, world! I am running on Ubuntu 20.04
+  displayName: 'Run a one-line script'

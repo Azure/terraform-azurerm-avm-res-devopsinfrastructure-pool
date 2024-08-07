@@ -109,8 +109,8 @@ Type:
 
 ```hcl
 object({
-    kind                  = string
-    prediction_preference = string
+    kind                  = optional(string, "Automatic")
+    prediction_preference = optional(string, "Balanced")
   })
 ```
 

@@ -168,6 +168,7 @@ module "managed_devops_pool" {
   version_control_system_organization_name  = var.azure_devops_organization_name
   version_control_system_project_names      = [azuredevops_project.this.name]
   agent_profile_resource_prediction_profile = "Manual"
+  enable_telemetry                          = var.enable_telemetry
 
   # This is an example of how to specify 2 constant standby agents. For 1 constant standby agent you don't need to define this block.
 

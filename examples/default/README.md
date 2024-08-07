@@ -173,6 +173,7 @@ module "managed_devops_pool" {
   dev_center_project_resource_id           = azurerm_dev_center_project.this.id
   version_control_system_organization_name = var.azure_devops_organization_name
   version_control_system_project_names     = [azuredevops_project.this.name]
+  enable_telemetry                         = var.enable_telemetry
   tags                                     = local.tags
   depends_on                               = [azapi_resource_action.resource_provider_registration]
 }

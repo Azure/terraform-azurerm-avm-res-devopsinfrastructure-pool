@@ -33,6 +33,10 @@ terraform {
       source  = "azure/azapi"
       version = "~> 1.14"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.53"
+    }
     azuredevops = {
       source  = "microsoft/azuredevops"
       version = "~> 1.1"
@@ -231,6 +235,7 @@ module "virtual_network" {
       }
     }
   }
+  enable_telemetry = var.enable_telemetry
 }
 
 resource "azurerm_dev_center" "this" {
@@ -262,6 +267,7 @@ module "managed_devops_pool" {
       projects = [azuredevops_project.this.name]
     }]
   }
+  enable_telemetry = var.enable_telemetry
   /* diagnostic_settings = {
     sendToLogAnalytics = {
       name                           = "sendToLogAnalytics"
@@ -323,6 +329,8 @@ The following requirements are needed by this module:
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
+
+- <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) (~> 2.53)
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 

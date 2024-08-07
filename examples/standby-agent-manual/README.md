@@ -15,7 +15,7 @@ variable "azure_devops_organization_name" {
 
 variable "azure_devops_personal_access_token" {
   type        = string
-  description = "The personal access token used for agent authentication to Azure DevOps."
+  description = "The personal access token used for authentication to Azure DevOps."
   sensitive   = true
 }
 
@@ -185,7 +185,7 @@ module "managed_devops_pool" {
   # agent_profile_resource_predictions_manual = {
   #  time_zone = "UTC"
   #  days_data = [{
-  #    "00:00": 2
+  #    "00:00:00": 2
   #  }]
   # }
 
@@ -195,8 +195,8 @@ module "managed_devops_pool" {
   # agent_profile_resource_predictions_manual = {
   #  time_zone = "UTC"
   #  days_data = [{
-  #    "08:00": 2
-  #    "18:00": 0
+  #    "08:00:00": 2
+  #    "18:00:00": 0
   #  }]
   # }
 
@@ -329,7 +329,7 @@ Type: `string`
 
 ### <a name="input_azure_devops_personal_access_token"></a> [azure\_devops\_personal\_access\_token](#input\_azure\_devops\_personal\_access\_token)
 
-Description: The personal access token used for agent authentication to Azure DevOps.
+Description: The personal access token used for authentication to Azure DevOps.
 
 Type: `string`
 

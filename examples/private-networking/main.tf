@@ -188,7 +188,7 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
   public_ip_address_id = azurerm_public_ip.this.id
 }
 
-module "vnet" {
+module "virtual_network" {
   source              = "Azure/avm-res-network-virtualnetwork/azurerm"
   version             = "0.4.0"
   address_space       = ["10.30.0.0/16"]
@@ -242,9 +242,9 @@ module "managed_devops_pool" {
   source                         = "../.."
   resource_group_name            = azurerm_resource_group.this.name
   location                       = azurerm_resource_group.this.location
-  name                           = random_string.name.result
+  name                           = "mdp-${random_string.name.result}"
   dev_center_project_resource_id = azurerm_dev_center_project.this.id
-  subnet_id                      = module.vnet.subnets["subnet0"].resource_id
+  subnet_id                      = module.virtual_network.subnets["subnet0"].resource_id
   organization_profile = {
     organizations = [{
       name     = var.azure_devops_organization_name
@@ -261,7 +261,7 @@ module "managed_devops_pool" {
   tags = local.tags
   depends_on = [
     azapi_resource_action.resource_provider_registration,
-    module.vnet
+    module.virtual_network
   ]
 }
 
@@ -274,11 +274,11 @@ output "managed_devops_pool_name" {
 }
 
 output "virtual_network_id" {
-  value = module.vnet.resource_id
+  value = module.virtual_network.resource_id
 }
 
 output "virtual_network_subnets" {
-  value = module.vnet.subnets
+  value = module.virtual_network.subnets
 }
 
 # Region helpers

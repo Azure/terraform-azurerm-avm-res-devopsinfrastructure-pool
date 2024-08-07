@@ -1,5 +1,5 @@
 <!-- BEGIN_TF_DOCS -->
-# Example for Azure DevOps Managed Pools with Private Networking
+# Example of deploying DevOps Managed Pools with Private Networking
 
 This deploys the module with Private Networking for Azure Managed DevOps Pools.
 
@@ -68,11 +68,6 @@ resource "random_string" "name" {
   upper   = false
 }
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
-}
-
 resource "azuredevops_project" "this" {
   name = random_string.name.result
 }
@@ -139,7 +134,7 @@ resource "azurerm_resource_group" "this" {
 
 resource "azurerm_log_analytics_workspace" "this" {
   location            = azurerm_resource_group.this.location
-  name                = module.naming.log_analytics_workspace.name_unique
+  name                = "law-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
 }
 
@@ -184,7 +179,27 @@ data "azuread_service_principal" "this" {
   display_name = "DevOpsInfrastructure" # This is a special built in service principal (see: https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal#to-check-the-devopsinfrastructure-principal-access)
 }
 
-module "vnet" {
+resource "azurerm_public_ip" "this" {
+  allocation_method   = "Static"
+  location            = azurerm_resource_group.this.location
+  name                = "pip-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  sku                 = "Standard"
+}
+
+resource "azurerm_nat_gateway" "this" {
+  location            = azurerm_resource_group.this.location
+  name                = "nat-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  sku_name            = "Standard"
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "this" {
+  nat_gateway_id       = azurerm_nat_gateway.this.id
+  public_ip_address_id = azurerm_public_ip.this.id
+}
+
+module "virtual_network" {
   source              = "Azure/avm-res-network-virtualnetwork/azurerm"
   version             = "0.4.0"
   address_space       = ["10.30.0.0/16"]
@@ -211,6 +226,9 @@ module "vnet" {
           name = "Microsoft.DevOpsInfrastructure/pools"
         }
       }]
+      nat_gateway = {
+        id = azurerm_nat_gateway.this.id
+      }
     }
   }
 }
@@ -235,9 +253,9 @@ module "managed_devops_pool" {
   source                         = "../.."
   resource_group_name            = azurerm_resource_group.this.name
   location                       = azurerm_resource_group.this.location
-  name                           = random_string.name.result
+  name                           = "mdp-${random_string.name.result}"
   dev_center_project_resource_id = azurerm_dev_center_project.this.id
-  subnet_id                      = module.vnet.subnets["subnet0"].resource_id
+  subnet_id                      = module.virtual_network.subnets["subnet0"].resource_id
   organization_profile = {
     organizations = [{
       name     = var.azure_devops_organization_name
@@ -254,7 +272,7 @@ module "managed_devops_pool" {
   tags = local.tags
   depends_on = [
     azapi_resource_action.resource_provider_registration,
-    module.vnet
+    module.virtual_network
   ]
 }
 
@@ -267,11 +285,11 @@ output "managed_devops_pool_name" {
 }
 
 output "virtual_network_id" {
-  value = module.vnet.resource_id
+  value = module.virtual_network.resource_id
 }
 
 output "virtual_network_subnets" {
-  value = module.vnet.subnets
+  value = module.virtual_network.subnets
 }
 
 # Region helpers
@@ -325,6 +343,9 @@ The following resources are used by this module:
 - [azurerm_dev_center.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center) (resource)
 - [azurerm_dev_center_project.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project) (resource)
 - [azurerm_log_analytics_workspace.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
+- [azurerm_nat_gateway.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway) (resource)
+- [azurerm_nat_gateway_public_ip_association.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway_public_ip_association) (resource)
+- [azurerm_public_ip.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) (resource)
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_definition.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_definition) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
@@ -394,19 +415,13 @@ Source: ../..
 
 Version:
 
-### <a name="module_naming"></a> [naming](#module\_naming)
-
-Source: Azure/naming/azurerm
-
-Version: >= 0.3.0
-
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
 Source: Azure/avm-utl-regions/azurerm
 
 Version: 0.1.0
 
-### <a name="module_vnet"></a> [vnet](#module\_vnet)
+### <a name="module_virtual_network"></a> [virtual\_network](#module\_virtual\_network)
 
 Source: Azure/avm-res-network-virtualnetwork/azurerm
 

@@ -160,15 +160,77 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                   = "../.."
-  resource_group_name                      = azurerm_resource_group.this.name
-  location                                 = azurerm_resource_group.this.location
-  name                                     = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id           = azurerm_dev_center_project.this.id
-  version_control_system_organization_name = var.azure_devops_organization_name
-  version_control_system_project_names     = [azuredevops_project.this.name]
-  tags                                     = local.tags
-  depends_on                               = [azapi_resource_action.resource_provider_registration]
+  source                                    = "../.."
+  resource_group_name                       = azurerm_resource_group.this.name
+  location                                  = azurerm_resource_group.this.location
+  name                                      = "mdp-${random_string.name.result}"
+  dev_center_project_resource_id            = azurerm_dev_center_project.this.id
+  version_control_system_organization_name  = var.azure_devops_organization_name
+  version_control_system_project_names      = [azuredevops_project.this.name]
+  agent_profile_resource_prediction_profile = "Manual"
+
+  #agent_profile_resource_predictions_manual = {  # This is an example of how to specify 2 constant standby agents. For 1 constant standby agent you don't need to define this block.
+  #  time_zone = "UTC"
+  #  days_data = [{
+  #    "00:00": 2
+  #  }]
+  #}
+
+  #agent_profile_resource_predictions_manual = {  # This is an example of how to specify 2 standby agents scaling up to 2 at 08:00 UTC and scaling down to 0 at 18:00 UTC every day of the week.
+  #  time_zone = "UTC"
+  #  days_data = [{
+  #    "08:00": 2
+  #    "18:00": 0
+  #  }]
+  #}
+
+  # agent_profile_resource_predictions_manual = {  # This is an example of how to specify scaling agents only on weekdays (Monday to Friday). It scales to 1 at 06:00 UTC, 2 at 08:00 UTC, 1 at 18:00 UTC and 0 at 20:00 UTC.
+  #   time_zone = "UTC"
+  #   days_data = [
+  #     # Sunday
+  #     {},
+  #     # Monday
+  #     {
+  #       "06:00:00" = 1
+  #       "08:00:00" = 2
+  #       "18:00:00" = 1
+  #       "20:00:00" = 0
+  #     },
+  #     # Tuesday
+  #     {
+  #       "06:00:00" = 1
+  #       "08:00:00" = 2
+  #       "18:00:00" = 1
+  #       "20:00:00" = 0
+  #     },
+  #     # Wednesday
+  #     {
+  #       "06:00:00" = 1
+  #       "08:00:00" = 2
+  #       "18:00:00" = 1
+  #       "20:00:00" = 0
+  #     },
+  #     # Thursday
+  #     {
+  #       "06:00:00" = 1
+  #       "08:00:00" = 2
+  #       "18:00:00" = 1
+  #       "20:00:00" = 0
+  #     },
+  #     # Friday
+  #     {
+  #       "06:00:00" = 1
+  #       "08:00:00" = 2
+  #       "18:00:00" = 1
+  #       "20:00:00" = 0
+  #     },
+  #     # Saturday
+  #     {}
+  #   ]
+  # }
+
+  tags       = local.tags
+  depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
 output "managed_devops_pool_id" {

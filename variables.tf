@@ -99,72 +99,92 @@ variable "agent_profile_resource_prediction_profile_manual" {
 
 variable "agent_profile_resource_predictions_manual" {
   type = object({
-    time_zone = optional(string)
+    time_zone = optional(string, "UTC")
     days_data = optional(list(map(number)))
   })
-  default     = {}
+  default = {
+    days_data = [
+      {
+        "00:00:00" = 1
+      }
+    ]
+  }
   description = <<DESCRIPTION
 An object representing manual resource predictions for agent profiles, including time zone and optional daily schedules.
 
-- `time_zone` - (Optional) The time zone for the agent profile. E.g. "Eastern Standard Time".
-- `days_data` - (Optional) A list representing the manual schedules
+- `time_zone` - (Optional) The time zone for the agent profile. E.g. "Eastern Standard Time". Defaults to `UTC`. To see valid values for this run this command in PowerShell: `[System.TimeZoneInfo]::GetSystemTimeZones() | Select Id, BaseUtcOffSet`
+- `days_data` - (Optional) A list representing the manual schedules. Defaults to a single standby agent constantly running.
 
 The `days_data` list should contain one or seven maps. Supply one to apply the same schedule each day. Supply seven for a different schedule each day.
 
-For example, to set the schedule for every day to scale to one agent at 8:00 AM and scale down to zero agents at 5:00 PM, you would use the following configuration:
+Examples: 
 
-```hcl
-agent_profile_resource_predictions_manual = {
-  time_zone = "Eastern Standard Time"
-  days_data = [
-    {
-      "08:00:00" = 1
-      "17:00:00" = 0
-    }
-  ]
-}
-```
+- To set always having 1 agent available, you would use the following configuration:
 
-To set a different schedule for each day, you would use the following configuration:
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    days_data = [
+      {
+        "00:00:00" = 1
+      }
+    ]
+  }
+  ```
 
-```hcl
-agent_profile_resource_predictions_manual = {
-  time_zone = "Eastern Standard Time"
-  days_data = [
-    # Sunday
-    {}, # Empty map to skip Sunday
-    # Monday
-    {
-      "03:00:00" = 2  # Scale to 2 agents at 3:00 AM
-      "08:00:00" = 4  # Scale to 4 agents at 8:00 AM
-      "17:00:00" = 2  # Scale to 2 agents at 5:00 PM
-      "22:00:00" = 0  # Scale to 0 agents at 10:00 PM
-    },
-    # Tuesday
-    {
-      "08:00:00" = 2
-      "17:00:00" = 0
-    },
-    # Wednesday
-    {
-      "08:00:00" = 2
-      "17:00:00" = 0
-    },
-    # Thursday
-    {
-      "08:00:00" = 2
-      "17:00:00" = 0
-    },
-    # Friday
-    {
-      "08:00:00" = 2
-      "17:00:00" = 0
-    },
-    # Saturday
-    {} # Empty map to skip Saturday
-  ]
-}
-```
+- To set the schedule for every day to scale to one agent at 8:00 AM and scale down to zero agents at 5:00 PM, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    time_zone = "Eastern Standard Time"
+    days_data = [
+      {
+        "08:00:00" = 1
+        "17:00:00" = 0
+      }
+    ]
+  }
+  ```
+
+- To set a different schedule for each day, you would use the following configuration:
+
+  ```hcl
+  agent_profile_resource_predictions_manual = {
+    time_zone = "Eastern Standard Time"
+    days_data = [
+      # Sunday
+      {}, # Empty map to skip Sunday
+      # Monday
+      {
+        "03:00:00" = 2  # Scale to 2 agents at 3:00 AM
+        "08:00:00" = 4  # Scale to 4 agents at 8:00 AM
+        "17:00:00" = 2  # Scale to 2 agents at 5:00 PM
+        "22:00:00" = 0  # Scale to 0 agents at 10:00 PM
+      },
+      # Tuesday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Wednesday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Thursday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Friday
+      {
+        "08:00:00" = 2
+        "17:00:00" = 0
+      },
+      # Saturday
+      {} # Empty map to skip Saturday
+    ]
+  }
+  ```
 
 DESCRIPTION
 

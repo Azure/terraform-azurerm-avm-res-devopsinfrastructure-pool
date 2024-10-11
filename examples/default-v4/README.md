@@ -1,5 +1,5 @@
 <!-- BEGIN_TF_DOCS -->
-# Example of deploying DevOps Managed Pools with Public Networking
+# Example of deploying DevOps Managed Pools with Public Networking with v4.0.0 of azurerm provider
 
 This deploys the module in its simplest form with the minimum variable inputs for Azure Managed DevOps Pools. It uses public networking.
 
@@ -34,7 +34,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.113"
+      version = "~> 4.5"
     }
     random = {
       source  = "hashicorp/random"
@@ -220,7 +220,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.113)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.5)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 

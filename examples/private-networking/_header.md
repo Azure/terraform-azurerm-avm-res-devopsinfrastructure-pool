@@ -1,5 +1,7 @@
 # Example of deploying DevOps Managed Pools with Private Networking
 
+>**⚠️WARNING!⚠️**: THIS IS A PREVIEW SERVICE, MICROSOFT MAY NOT PROVIDE SUPPORT FOR THIS, PLEASE CHECK THE PRODUCT DOCS FOR CLARIFICATION
+
 This deploys the module with Private Networking for Azure Managed DevOps Pools.
 
 There are some points of note for this example:

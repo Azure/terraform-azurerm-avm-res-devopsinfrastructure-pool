@@ -1,5 +1,5 @@
 resource "azapi_resource" "managed_devops_pool" {
-  type = "Microsoft.DevOpsInfrastructure/pools@2024-04-04-preview"
+  type = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
   body = {
     properties = {
       devCenterProjectResourceId = var.dev_center_project_resource_id

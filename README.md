@@ -1,8 +1,6 @@
 <!-- BEGIN_TF_DOCS -->
 # Azure Verified Module for Managed DevOps Pools
 
->**⚠️WARNING!⚠️**: THIS IS A PREVIEW SERVICE, MICROSOFT MAY NOT PROVIDE SUPPORT FOR THIS, PLEASE CHECK THE PRODUCT DOCS FOR CLARIFICATION
-
 This module deploys and configures Managed DevOps Pools.
 
 ## Features

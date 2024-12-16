@@ -473,3 +473,14 @@ variable "version_control_system_type" {
     error_message = "The version_control_system_type must be one of: 'azuredevops' or 'github'."
   }
 }
+
+variable "fabric_profile_os_profile_logon_type" {
+  type        = string
+  default     = "Service"
+  description = "The logon type for the OS profile, possible values are 'Interactive' and 'Service', defaults to 'Service'."
+
+  validation {
+    condition     = can(index(["Interactive", "Service"], var.fabric_profile_os_profile_logon_type))
+    error_message = "The fabric_profile_os_profile_logon_type must be one of: 'Interactive' or 'Service'."
+  }
+}

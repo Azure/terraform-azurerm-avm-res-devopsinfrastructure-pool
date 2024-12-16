@@ -27,7 +27,7 @@ resource "azapi_resource" "managed_devops_pool" {
           subnetId = var.subnet_id
         } : null
         osProfile = {
-          logonType = "Service"
+          logonType = var.fabric_profile_os_profile_logon_type
         }
         storageProfile = {
           osDiskStorageAccountType = var.fabric_profile_os_disk_storage_account_type

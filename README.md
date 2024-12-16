@@ -552,6 +552,14 @@ Type: `string`
 
 Default: `"azuredevops"`
 
+### <a name="input_fabric_profile_os_profile_logon_type"></a> [fabric\_profile\_os\_profile\_logon\_type](#input\_fabric\_profile\_os\_profile\_logon\_type)
+
+Description: The logon type for the OS profile, possible values are 'Interactive' and 'Service', defaults to 'Service'.
+
+Type: `string`
+
+Default: `"Service"`
+
 ## Outputs
 
 The following outputs are exported:

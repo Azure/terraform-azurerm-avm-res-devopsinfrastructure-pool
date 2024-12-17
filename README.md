@@ -381,6 +381,14 @@ Type: `string`
 
 Default: `"Premium"`
 
+### <a name="input_fabric_profile_os_profile_logon_type"></a> [fabric\_profile\_os\_profile\_logon\_type](#input\_fabric\_profile\_os\_profile\_logon\_type)
+
+Description: The logon type for the OS profile, possible values are 'Interactive' and 'Service', defaults to 'Service'.
+
+Type: `string`
+
+Default: `"Service"`
+
 ### <a name="input_fabric_profile_sku_name"></a> [fabric\_profile\_sku\_name](#input\_fabric\_profile\_sku\_name)
 
 Description: The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximum_concurrency` value, make sure you request enough quota, defaults to 'Standard\_D2ads\_v5' which has 2 vCPU Cores. so if maximum\_concurrency is 2, you will need quota for 4 vCPU Cores and so on.

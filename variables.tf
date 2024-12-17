@@ -315,6 +315,17 @@ variable "fabric_profile_os_disk_storage_account_type" {
   }
 }
 
+variable "fabric_profile_os_profile_logon_type" {
+  type        = string
+  default     = "Service"
+  description = "The logon type for the OS profile, possible values are 'Interactive' and 'Service', defaults to 'Service'."
+
+  validation {
+    condition     = can(index(["Interactive", "Service"], var.fabric_profile_os_profile_logon_type))
+    error_message = "The fabric_profile_os_profile_logon_type must be one of: 'Interactive' or 'Service'."
+  }
+}
+
 variable "fabric_profile_sku_name" {
   type        = string
   default     = "Standard_D2ads_v5"

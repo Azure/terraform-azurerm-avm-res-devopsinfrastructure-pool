@@ -15,7 +15,7 @@ variable "name" {
   description = "Name of the pool. It needs to be globally unique for each Azure DevOps Organization."
 
   validation {
-    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-.]{3,44}$", var.name))
+    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-.]{2,43}$", var.name))
     error_message = "The name must be between 3 and 44 characters long, start with an alphanumeric character, and can only contain alphanumeric characters, hyphens, and dots."
   }
 }

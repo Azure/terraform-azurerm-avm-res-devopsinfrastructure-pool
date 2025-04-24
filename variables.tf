@@ -221,7 +221,7 @@ A map of diagnostic settings to create on the Key Vault. The map key is delibera
 - `event_hub_authorization_rule_resource_id` - (Optional) The resource ID of the event hub authorization rule to send logs and metrics to.
 - `event_hub_name` - (Optional) The name of the event hub. If none is specified, the default event hub will be selected.
 - `marketplace_partner_resource_id` - (Optional) The full ARM resource ID of the Marketplace resource to which you would like to send Diagnostic LogsLogs.
-DESCRIPTION  
+DESCRIPTION
   nullable    = false
 
   validation {

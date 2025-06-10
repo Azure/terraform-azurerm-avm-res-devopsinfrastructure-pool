@@ -24,7 +24,7 @@ locals {
 }
 
 terraform {
-  required_version = ">= 1.9"
+  required_version = ">= 1.9, < 2.0"
   required_providers {
     azapi = {
       source  = "azure/azapi"
@@ -216,7 +216,7 @@ locals {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
 

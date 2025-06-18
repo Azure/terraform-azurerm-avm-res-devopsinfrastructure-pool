@@ -1,3 +1,14 @@
+variable "azure_devops_organization_name" {
+  type        = string
+  description = "Azure DevOps Organisation Name"
+}
+
+variable "azure_devops_personal_access_token" {
+  type        = string
+  description = "The personal access token used for authentication to Azure DevOps."
+  sensitive   = true
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true

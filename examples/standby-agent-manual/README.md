@@ -10,17 +10,6 @@ A standby agent is a warm agent ready to pick up runs that makes the start time 
 See the example code for different ways to conmfiugure the manual scaling schedule.
 
 ```hcl
-variable "azure_devops_organization_name" {
-  type        = string
-  description = "Azure DevOps Organisation Name"
-}
-
-variable "azure_devops_personal_access_token" {
-  type        = string
-  description = "The personal access token used for authentication to Azure DevOps."
-  sensitive   = true
-}
-
 locals {
   tags = {
     scenario = "default"
@@ -32,7 +21,7 @@ terraform {
   required_providers {
     azapi = {
       source  = "azure/azapi"
-      version = "~> 1.14"
+      version = "~> 2.0"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -40,11 +29,11 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.113"
+      version = "~> 4.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.5"
+      version = "~> 3.6.3"
     }
   }
 }
@@ -149,10 +138,10 @@ data "azurerm_client_config" "this" {}
 resource "azapi_resource_action" "resource_provider_registration" {
   for_each = local.resource_providers_to_register
 
-  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
-  type        = "Microsoft.Resources/subscriptions@2021-04-01"
   action      = "providers/${each.value.resource_provider}/register"
   method      = "POST"
+  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
 }
 
 resource "azurerm_dev_center" "this" {
@@ -172,100 +161,27 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                    = "../.."
-  resource_group_name                       = azurerm_resource_group.this.name
+  source = "../.."
+
+  dev_center_project_resource_id            = azurerm_dev_center_project.this.id
   location                                  = azurerm_resource_group.this.location
   name                                      = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id            = azurerm_dev_center_project.this.id
-  version_control_system_organization_name  = var.azure_devops_organization_name
-  version_control_system_project_names      = [azuredevops_project.this.name]
+  resource_group_name                       = azurerm_resource_group.this.name
   agent_profile_resource_prediction_profile = "Manual"
   enable_telemetry                          = var.enable_telemetry
+  tags                                      = local.tags
+  version_control_system_organization_name  = var.azure_devops_organization_name
+  version_control_system_project_names      = [azuredevops_project.this.name]
 
-  # This is an example of how to specify 2 constant standby agents. For 1 constant standby agent you don't need to define this block.
-
-  # agent_profile_resource_predictions_manual = {
-  #  time_zone = "UTC"
-  #  days_data = [{
-  #    "00:00:00": 2
-  #  }]
-  # }
-
-
-  # This is an example of how to specify 2 standby agents scaling up to 2 at 08:00 UTC and scaling down to 0 at 18:00 UTC every day of the week.
-
-  # agent_profile_resource_predictions_manual = {
-  #  time_zone = "UTC"
-  #  days_data = [{
-  #    "08:00:00": 2
-  #    "18:00:00": 0
-  #  }]
-  # }
-
-
-  # This is an example of how to specify scaling agents only on weekdays (Monday to Friday). It scales to 1 at 06:00 UTC, 2 at 08:00 UTC, 1 at 18:00 UTC and 0 at 20:00 UTC.
-
-  # agent_profile_resource_predictions_manual = {
-  #   time_zone = "UTC"
-  #   days_data = [
-  #     # Sunday
-  #     {},
-  #     # Monday
-  #     {
-  #       "06:00:00" = 1
-  #       "08:00:00" = 2
-  #       "18:00:00" = 1
-  #       "20:00:00" = 0
-  #     },
-  #     # Tuesday
-  #     {
-  #       "06:00:00" = 1
-  #       "08:00:00" = 2
-  #       "18:00:00" = 1
-  #       "20:00:00" = 0
-  #     },
-  #     # Wednesday
-  #     {
-  #       "06:00:00" = 1
-  #       "08:00:00" = 2
-  #       "18:00:00" = 1
-  #       "20:00:00" = 0
-  #     },
-  #     # Thursday
-  #     {
-  #       "06:00:00" = 1
-  #       "08:00:00" = 2
-  #       "18:00:00" = 1
-  #       "20:00:00" = 0
-  #     },
-  #     # Friday
-  #     {
-  #       "06:00:00" = 1
-  #       "08:00:00" = 2
-  #       "18:00:00" = 1
-  #       "20:00:00" = 0
-  #     },
-  #     # Saturday
-  #     {}
-  #   ]
-  # }
-
-  tags       = local.tags
   depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
-output "managed_devops_pool_id" {
-  value = module.managed_devops_pool.resource_id
-}
 
-output "managed_devops_pool_name" {
-  value = module.managed_devops_pool.name
-}
 
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.5.2"
 }
 
 resource "random_integer" "region_index" {
@@ -292,13 +208,13 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.113)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
+- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.6.3)
 
 ## Resources
 
@@ -375,7 +291,7 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.1.0
+Version: 0.5.2
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

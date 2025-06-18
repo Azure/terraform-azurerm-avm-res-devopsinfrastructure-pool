@@ -117,7 +117,7 @@ An object representing manual resource predictions for agent profiles, including
 
 The `days_data` list should contain one or seven maps. Supply one to apply the same schedule each day. Supply seven for a different schedule each day.
 
-Examples: 
+Examples:
 
 - To set always having 1 agent available, you would use the following configuration:
 
@@ -351,6 +351,32 @@ DESCRIPTION
   }
 }
 
+variable "managed_devops_pool_retry_on_error" {
+  type        = list(string)
+  default     = ["Failed to provision agent pool. Exception: The logged in user,.*, was not found in the Azure DevOps organization provided,.*"]
+  description = <<DESCRIPTION
+A list of error messages to retry creating the Managed DevOps Pool resource on. This is used to retry the resource creation if the error message matches one of the values in the list. Defaults to a list containing a regex pattern that matches the error message when the user is not found in the Azure DevOps organization.
+DESCRIPTION
+}
+
+variable "managed_devops_pool_timeouts" {
+  type = object({
+    create = optional(string, "30m")
+    update = optional(string, "30m")
+    read   = optional(string, "30m")
+    delete = optional(string, "30m")
+  })
+  default     = {}
+  description = <<DESCRIPTION
+Timeouts for the Managed DevOps Pool resource. The following properties can be specified:
+
+- `create` - (Optional) The timeout for creating the resource. Defaults to `30m`.
+- `update` - (Optional) The timeout for updating the resource. Defaults to `30m`.
+- `read` - (Optional) The timeout for reading the resource. Defaults to `30m`.
+- `delete` - (Optional) The timeout for deleting the resource. Defaults to `30m`.
+DESCRIPTION
+}
+
 # tflint-ignore: terraform_unused_declarations
 variable "managed_identities" {
   type = object({
@@ -396,9 +422,9 @@ variable "organization_profile" {
   })
   default     = null
   description = <<DESCRIPTION
-An object representing the configuration for an organization profile, including organizations and permission profiles. 
+An object representing the configuration for an organization profile, including organizations and permission profiles.
 
-This is for advanced use cases where you need to specify permissions and multiple organization. 
+This is for advanced use cases where you need to specify permissions and multiple organization.
 
 If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
 

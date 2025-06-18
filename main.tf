@@ -1,5 +1,8 @@
 resource "azapi_resource" "managed_devops_pool" {
-  type = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
+  location  = var.location
+  name      = var.name
+  parent_id = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
+  type      = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
   body = {
     properties = {
       devCenterProjectResourceId = var.dev_center_project_resource_id
@@ -42,9 +45,9 @@ resource "azapi_resource" "managed_devops_pool" {
       }
     }
   }
-  location                  = var.location
-  name                      = var.name
-  parent_id                 = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
+  retry = {
+    error_message_regex = var.managed_devops_pool_retry_on_error
+  }
   schema_validation_enabled = false
   tags                      = var.tags
 
@@ -55,6 +58,12 @@ resource "azapi_resource" "managed_devops_pool" {
       type         = identity.value.type
       identity_ids = identity.value.user_assigned_resource_ids
     }
+  }
+  timeouts {
+    create = try(var.managed_devops_pool_timeouts.create, null)
+    delete = try(var.managed_devops_pool_timeouts.delete, null)
+    read   = try(var.managed_devops_pool_timeouts.read, null)
+    update = try(var.managed_devops_pool_timeouts.update, null)
   }
 }
 

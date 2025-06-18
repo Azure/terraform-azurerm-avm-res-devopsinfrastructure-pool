@@ -8,17 +8,6 @@ This deploys the module in with multiple agent images for Azure Managed DevOps P
 In the example we have two pipeline definitions, each of which has a demand specifiy the agent image to use.
 
 ```hcl
-variable "azure_devops_organization_name" {
-  type        = string
-  description = "Azure DevOps Organisation Name"
-}
-
-variable "azure_devops_personal_access_token" {
-  type        = string
-  description = "The personal access token used for authentication to Azure DevOps."
-  sensitive   = true
-}
-
 locals {
   tags = {
     scenario = "default"
@@ -30,7 +19,7 @@ terraform {
   required_providers {
     azapi = {
       source  = "azure/azapi"
-      version = "~> 1.14"
+      version = "~> 2.0"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -38,11 +27,11 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.113"
+      version = "~> 4.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.5"
+      version = "~> 3.6.3"
     }
   }
 }
@@ -73,8 +62,8 @@ resource "azuredevops_project" "this" {
 
 locals {
   default_branch          = "refs/heads/main"
-  pipeline_file_ubuntu_20 = "pipeline-ubuntu-20.yml"
   pipeline_file_ubuntu_22 = "pipeline-ubuntu-22.yml"
+  pipeline_file_ubuntu_24 = "pipeline-ubuntu-24.yml"
   repository_name         = "example-repo"
 }
 
@@ -87,10 +76,10 @@ resource "azuredevops_git_repository" "this" {
   }
 }
 
-resource "azuredevops_git_repository_file" "ubuntu_2004" {
+resource "azuredevops_git_repository_file" "ubuntu_2404" {
   repository_id = azuredevops_git_repository.this.id
-  file          = local.pipeline_file_ubuntu_20
-  content = templatefile("${path.module}/${local.pipeline_file_ubuntu_20}", {
+  file          = local.pipeline_file_ubuntu_24
+  content = templatefile("${path.module}/${local.pipeline_file_ubuntu_24}", {
     agent_pool_name = module.managed_devops_pool.name
   })
   branch              = local.default_branch
@@ -109,9 +98,9 @@ resource "azuredevops_git_repository_file" "ubuntu_2204" {
   overwrite_on_create = true
 }
 
-resource "azuredevops_build_definition" "ubuntu_2004" {
+resource "azuredevops_build_definition" "ubuntu_2404" {
   project_id = azuredevops_project.this.id
-  name       = "Example Build Definition Ubuntu 20.04"
+  name       = "Example Build Definition Ubuntu 24.04"
 
   ci_trigger {
     use_yaml = true
@@ -121,7 +110,7 @@ resource "azuredevops_build_definition" "ubuntu_2004" {
     repo_type   = "TfsGit"
     repo_id     = azuredevops_git_repository.this.id
     branch_name = azuredevops_git_repository.this.default_branch
-    yml_path    = local.pipeline_file_ubuntu_20
+    yml_path    = local.pipeline_file_ubuntu_24
   }
 }
 
@@ -147,11 +136,11 @@ data "azuredevops_agent_queue" "this" {
   depends_on = [module.managed_devops_pool]
 }
 
-resource "azuredevops_pipeline_authorization" "ubuntu_2004" {
+resource "azuredevops_pipeline_authorization" "ubuntu_2404" {
   project_id  = azuredevops_project.this.id
   resource_id = data.azuredevops_agent_queue.this.id
   type        = "queue"
-  pipeline_id = azuredevops_build_definition.ubuntu_2004.id
+  pipeline_id = azuredevops_build_definition.ubuntu_2404.id
 }
 
 resource "azuredevops_pipeline_authorization" "ubuntu_2204" {
@@ -182,10 +171,10 @@ data "azurerm_client_config" "this" {}
 resource "azapi_resource_action" "resource_provider_registration" {
   for_each = local.resource_providers_to_register
 
-  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
-  type        = "Microsoft.Resources/subscriptions@2021-04-01"
   action      = "providers/${each.value.resource_provider}/register"
   method      = "POST"
+  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
 }
 
 resource "azurerm_dev_center" "this" {
@@ -205,18 +194,18 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                   = "../.."
-  resource_group_name                      = azurerm_resource_group.this.name
-  location                                 = azurerm_resource_group.this.location
-  name                                     = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id           = azurerm_dev_center_project.this.id
-  version_control_system_organization_name = var.azure_devops_organization_name
-  version_control_system_project_names     = [azuredevops_project.this.name]
+  source = "../.."
+
+  dev_center_project_resource_id = azurerm_dev_center_project.this.id
+  location                       = azurerm_resource_group.this.location
+  name                           = "mdp-${random_string.name.result}"
+  resource_group_name            = azurerm_resource_group.this.name
+  enable_telemetry               = var.enable_telemetry
   fabric_profile_images = [
     {
-      well_known_image_name = "ubuntu-20.04/latest"
+      well_known_image_name = "ubuntu-24.04/latest"
       aliases = [
-        "ubuntu-20.04/latest"
+        "ubuntu-24.04/latest"
       ]
     },
     {
@@ -226,23 +215,19 @@ module "managed_devops_pool" {
       ]
     }
   ]
-  enable_telemetry = var.enable_telemetry
-  tags             = local.tags
-  depends_on       = [azapi_resource_action.resource_provider_registration]
+  tags                                     = local.tags
+  version_control_system_organization_name = var.azure_devops_organization_name
+  version_control_system_project_names     = [azuredevops_project.this.name]
+
+  depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
-output "managed_devops_pool_id" {
-  value = module.managed_devops_pool.resource_id
-}
 
-output "managed_devops_pool_name" {
-  value = module.managed_devops_pool.name
-}
 
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.5.2"
 }
 
 resource "random_integer" "region_index" {
@@ -269,26 +254,26 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.113)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
+- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.6.3)
 
 ## Resources
 
 The following resources are used by this module:
 
 - [azapi_resource_action.resource_provider_registration](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource_action) (resource)
-- [azuredevops_build_definition.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
 - [azuredevops_build_definition.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
+- [azuredevops_build_definition.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
 - [azuredevops_git_repository.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository) (resource)
-- [azuredevops_git_repository_file.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
 - [azuredevops_git_repository_file.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
-- [azuredevops_pipeline_authorization.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
+- [azuredevops_git_repository_file.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
 - [azuredevops_pipeline_authorization.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
+- [azuredevops_pipeline_authorization.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
 - [azuredevops_project.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/project) (resource)
 - [azurerm_dev_center.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center) (resource)
 - [azurerm_dev_center_project.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project) (resource)
@@ -355,7 +340,7 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.1.0
+Version: 0.5.2
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

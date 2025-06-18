@@ -45,6 +45,9 @@ resource "azapi_resource" "managed_devops_pool" {
       }
     }
   }
+  retry = {
+    error_message_regex = var.managed_devops_pool_retry_on_error
+  }
   schema_validation_enabled = false
   tags                      = var.tags
 
@@ -57,9 +60,10 @@ resource "azapi_resource" "managed_devops_pool" {
     }
   }
   timeouts {
-    create = "30m"
-    delete = "30m"
-    update = "30m"
+    create = try(var.timeouts.create, null)
+    delete = try(var.timeouts.delete, null)
+    read   = try(var.timeouts.read, null)
+    update = try(var.timeouts.update, null)
   }
 }
 

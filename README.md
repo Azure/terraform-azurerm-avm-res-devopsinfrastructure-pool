@@ -415,6 +415,42 @@ object({
 
 Default: `null`
 
+### <a name="input_managed_devops_pool_retry_on_error"></a> [managed\_devops\_pool\_retry\_on\_error](#input\_managed\_devops\_pool\_retry\_on\_error)
+
+Description: A list of error messages to retry creating the Managed DevOps Pool resource on. This is used to retry the resource creation if the error message matches one of the values in the list. Defaults to a list containing a regex pattern that matches the error message when the user is not found in the Azure DevOps organization.
+
+Type: `list(string)`
+
+Default:
+
+```json
+[
+  "Failed to provision agent pool. Exception: The logged in user,.*, was not found in the Azure DevOps organization provided,.*"
+]
+```
+
+### <a name="input_managed_devops_pool_timeouts"></a> [managed\_devops\_pool\_timeouts](#input\_managed\_devops\_pool\_timeouts)
+
+Description: Timeouts for the Managed DevOps Pool resource. The following properties can be specified:
+
+- `create` - (Optional) The timeout for creating the resource. Defaults to `30m`.
+- `update` - (Optional) The timeout for updating the resource. Defaults to `30m`.
+- `read` - (Optional) The timeout for reading the resource. Defaults to `30m`.
+- `delete` - (Optional) The timeout for deleting the resource. Defaults to `30m`.
+
+Type:
+
+```hcl
+object({
+    create = optional(string, "30m")
+    update = optional(string, "30m")
+    read   = optional(string, "30m")
+    delete = optional(string, "30m")
+  })
+```
+
+Default: `{}`
+
 ### <a name="input_managed_identities"></a> [managed\_identities](#input\_managed\_identities)
 
 Description: Controls the Managed Identity configuration on this resource. The following properties can be specified:

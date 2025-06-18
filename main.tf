@@ -60,10 +60,10 @@ resource "azapi_resource" "managed_devops_pool" {
     }
   }
   timeouts {
-    create = try(var.timeouts.create, null)
-    delete = try(var.timeouts.delete, null)
-    read   = try(var.timeouts.read, null)
-    update = try(var.timeouts.update, null)
+    create = try(var.managed_devops_pool_timeouts.create, null)
+    delete = try(var.managed_devops_pool_timeouts.delete, null)
+    read   = try(var.managed_devops_pool_timeouts.read, null)
+    update = try(var.managed_devops_pool_timeouts.update, null)
   }
 }
 

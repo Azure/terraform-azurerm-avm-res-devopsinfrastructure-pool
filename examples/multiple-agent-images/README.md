@@ -76,7 +76,7 @@ resource "azuredevops_git_repository" "this" {
   }
 }
 
-resource "azuredevops_git_repository_file" "ubuntu_2004" {
+resource "azuredevops_git_repository_file" "ubuntu_2404" {
   repository_id = azuredevops_git_repository.this.id
   file          = local.pipeline_file_ubuntu_24
   content = templatefile("${path.module}/${local.pipeline_file_ubuntu_24}", {
@@ -98,9 +98,9 @@ resource "azuredevops_git_repository_file" "ubuntu_2204" {
   overwrite_on_create = true
 }
 
-resource "azuredevops_build_definition" "ubuntu_2204" {
+resource "azuredevops_build_definition" "ubuntu_2404" {
   project_id = azuredevops_project.this.id
-  name       = "Example Build Definition Ubuntu 22.04"
+  name       = "Example Build Definition Ubuntu 24.04"
 
   ci_trigger {
     use_yaml = true
@@ -268,9 +268,10 @@ The following resources are used by this module:
 
 - [azapi_resource_action.resource_provider_registration](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource_action) (resource)
 - [azuredevops_build_definition.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
+- [azuredevops_build_definition.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
 - [azuredevops_git_repository.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository) (resource)
-- [azuredevops_git_repository_file.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
 - [azuredevops_git_repository_file.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
+- [azuredevops_git_repository_file.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
 - [azuredevops_pipeline_authorization.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
 - [azuredevops_pipeline_authorization.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
 - [azuredevops_project.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/project) (resource)

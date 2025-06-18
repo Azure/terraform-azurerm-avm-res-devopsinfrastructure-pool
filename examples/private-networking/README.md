@@ -24,6 +24,10 @@ terraform {
       source  = "azure/azapi"
       version = "~> 2.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.53"
+    }
     azuredevops = {
       source  = "microsoft/azuredevops"
       version = "~> 1.1"
@@ -301,6 +305,8 @@ The following requirements are needed by this module:
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
+
+- <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) (~> 2.53)
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 

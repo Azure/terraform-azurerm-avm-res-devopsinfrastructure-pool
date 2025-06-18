@@ -17,13 +17,13 @@ terraform {
       source  = "azure/azapi"
       version = "~> 2.0"
     }
+    azuredevops = {
+      source  = "microsoft/azuredevops"
+      version = "~> 1.1"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
-    }
-    modtm = {
-      source  = "azure/modtm"
-      version = "~> 0.3"
     }
     random = {
       source  = "hashicorp/random"
@@ -203,9 +203,9 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.6.3)
 
@@ -214,17 +214,17 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azapi_resource_action.resource_provider_registration](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource_action) (resource)
-- [azuredevops_build_definition.this](https://registry.terraform.io/providers/hashicorp/azuredevops/latest/docs/resources/build_definition) (resource)
-- [azuredevops_git_repository.this](https://registry.terraform.io/providers/hashicorp/azuredevops/latest/docs/resources/git_repository) (resource)
-- [azuredevops_git_repository_file.this](https://registry.terraform.io/providers/hashicorp/azuredevops/latest/docs/resources/git_repository_file) (resource)
-- [azuredevops_pipeline_authorization.this](https://registry.terraform.io/providers/hashicorp/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
-- [azuredevops_project.this](https://registry.terraform.io/providers/hashicorp/azuredevops/latest/docs/resources/project) (resource)
+- [azuredevops_build_definition.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
+- [azuredevops_git_repository.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository) (resource)
+- [azuredevops_git_repository_file.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
+- [azuredevops_pipeline_authorization.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
+- [azuredevops_project.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/project) (resource)
 - [azurerm_dev_center.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center) (resource)
 - [azurerm_dev_center_project.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project) (resource)
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 - [random_string.name](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) (resource)
-- [azuredevops_agent_queue.this](https://registry.terraform.io/providers/hashicorp/azuredevops/latest/docs/data-sources/agent_queue) (data source)
+- [azuredevops_agent_queue.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/data-sources/agent_queue) (data source)
 - [azurerm_client_config.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
 
 <!-- markdownlint-disable MD013 -->

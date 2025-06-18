@@ -126,11 +126,11 @@ data "azuredevops_agent_queue" "this" {
   depends_on = [module.managed_devops_pool]
 }
 
-resource "azuredevops_pipeline_authorization" "ubuntu_2004" {
+resource "azuredevops_pipeline_authorization" "ubuntu_2404" {
   project_id  = azuredevops_project.this.id
   resource_id = data.azuredevops_agent_queue.this.id
   type        = "queue"
-  pipeline_id = azuredevops_build_definition.ubuntu_2004.id
+  pipeline_id = azuredevops_build_definition.ubuntu_2404.id
 }
 
 resource "azuredevops_pipeline_authorization" "ubuntu_2204" {

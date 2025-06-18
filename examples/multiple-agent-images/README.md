@@ -136,11 +136,11 @@ data "azuredevops_agent_queue" "this" {
   depends_on = [module.managed_devops_pool]
 }
 
-resource "azuredevops_pipeline_authorization" "ubuntu_2004" {
+resource "azuredevops_pipeline_authorization" "ubuntu_2404" {
   project_id  = azuredevops_project.this.id
   resource_id = data.azuredevops_agent_queue.this.id
   type        = "queue"
-  pipeline_id = azuredevops_build_definition.ubuntu_2004.id
+  pipeline_id = azuredevops_build_definition.ubuntu_2404.id
 }
 
 resource "azuredevops_pipeline_authorization" "ubuntu_2204" {
@@ -272,8 +272,8 @@ The following resources are used by this module:
 - [azuredevops_git_repository.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository) (resource)
 - [azuredevops_git_repository_file.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
 - [azuredevops_git_repository_file.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)
-- [azuredevops_pipeline_authorization.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
 - [azuredevops_pipeline_authorization.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
+- [azuredevops_pipeline_authorization.ubuntu_2404](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/pipeline_authorization) (resource)
 - [azuredevops_project.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/project) (resource)
 - [azurerm_dev_center.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center) (resource)
 - [azurerm_dev_center_project.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project) (resource)

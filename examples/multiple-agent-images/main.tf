@@ -66,7 +66,7 @@ resource "azuredevops_git_repository" "this" {
   }
 }
 
-resource "azuredevops_git_repository_file" "ubuntu_2004" {
+resource "azuredevops_git_repository_file" "ubuntu_2404" {
   repository_id = azuredevops_git_repository.this.id
   file          = local.pipeline_file_ubuntu_24
   content = templatefile("${path.module}/${local.pipeline_file_ubuntu_24}", {
@@ -88,9 +88,9 @@ resource "azuredevops_git_repository_file" "ubuntu_2204" {
   overwrite_on_create = true
 }
 
-resource "azuredevops_build_definition" "ubuntu_2204" {
+resource "azuredevops_build_definition" "ubuntu_2404" {
   project_id = azuredevops_project.this.id
-  name       = "Example Build Definition Ubuntu 22.04"
+  name       = "Example Build Definition Ubuntu 24.04"
 
   ci_trigger {
     use_yaml = true

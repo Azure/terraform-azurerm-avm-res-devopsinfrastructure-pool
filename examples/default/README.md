@@ -1,8 +1,6 @@
 <!-- BEGIN_TF_DOCS -->
 # Example of deploying DevOps Managed Pools with Public Networking
 
->**⚠️WARNING!⚠️**: THIS IS A PREVIEW SERVICE, MICROSOFT MAY NOT PROVIDE SUPPORT FOR THIS, PLEASE CHECK THE PRODUCT DOCS FOR CLARIFICATION
-
 This deploys the module in its simplest form with the minimum variable inputs for Azure Managed DevOps Pools. It uses public networking.
 
 ```hcl
@@ -19,7 +17,7 @@ terraform {
   required_providers {
     azapi = {
       source  = "azure/azapi"
-      version = "~> 1.14"
+      version = "~> 2"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -27,7 +25,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.113"
+      version = "~> 4.5"
     }
     random = {
       source  = "hashicorp/random"
@@ -178,7 +176,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.3.0"
 }
 
 resource "random_integer" "region_index" {
@@ -205,11 +203,11 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 1.14)
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2)
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.113)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.5)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 
@@ -288,7 +286,7 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.1.0
+Version: 0.3.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

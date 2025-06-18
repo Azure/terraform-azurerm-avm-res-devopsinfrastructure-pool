@@ -11,7 +11,7 @@ terraform {
   required_providers {
     azapi = {
       source  = "azure/azapi"
-      version = "~> 1.14"
+      version = "~> 2"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -19,7 +19,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.113"
+      version = "~> 4.5"
     }
     random = {
       source  = "hashicorp/random"
@@ -170,7 +170,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.3.0"
 }
 
 resource "random_integer" "region_index" {

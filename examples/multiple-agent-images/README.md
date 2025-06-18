@@ -203,9 +203,9 @@ module "managed_devops_pool" {
   enable_telemetry               = var.enable_telemetry
   fabric_profile_images = [
     {
-      well_known_image_name = "ubuntu-20.04/latest"
+      well_known_image_name = "ubuntu-24.04/latest"
       aliases = [
-        "ubuntu-20.04/latest"
+        "ubuntu-24.04/latest"
       ]
     },
     {

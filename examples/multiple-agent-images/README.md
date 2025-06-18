@@ -62,8 +62,8 @@ resource "azuredevops_project" "this" {
 
 locals {
   default_branch          = "refs/heads/main"
-  pipeline_file_ubuntu_20 = "pipeline-ubuntu-20.yml"
   pipeline_file_ubuntu_22 = "pipeline-ubuntu-22.yml"
+  pipeline_file_ubuntu_24 = "pipeline-ubuntu-24.yml"
   repository_name         = "example-repo"
 }
 
@@ -78,8 +78,8 @@ resource "azuredevops_git_repository" "this" {
 
 resource "azuredevops_git_repository_file" "ubuntu_2004" {
   repository_id = azuredevops_git_repository.this.id
-  file          = local.pipeline_file_ubuntu_20
-  content = templatefile("${path.module}/${local.pipeline_file_ubuntu_20}", {
+  file          = local.pipeline_file_ubuntu_24
+  content = templatefile("${path.module}/${local.pipeline_file_ubuntu_24}", {
     agent_pool_name = module.managed_devops_pool.name
   })
   branch              = local.default_branch
@@ -98,9 +98,9 @@ resource "azuredevops_git_repository_file" "ubuntu_2204" {
   overwrite_on_create = true
 }
 
-resource "azuredevops_build_definition" "ubuntu_2004" {
+resource "azuredevops_build_definition" "ubuntu_2204" {
   project_id = azuredevops_project.this.id
-  name       = "Example Build Definition Ubuntu 20.04"
+  name       = "Example Build Definition Ubuntu 22.04"
 
   ci_trigger {
     use_yaml = true
@@ -110,7 +110,7 @@ resource "azuredevops_build_definition" "ubuntu_2004" {
     repo_type   = "TfsGit"
     repo_id     = azuredevops_git_repository.this.id
     branch_name = azuredevops_git_repository.this.default_branch
-    yml_path    = local.pipeline_file_ubuntu_20
+    yml_path    = local.pipeline_file_ubuntu_24
   }
 }
 
@@ -267,7 +267,6 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azapi_resource_action.resource_provider_registration](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource_action) (resource)
-- [azuredevops_build_definition.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
 - [azuredevops_build_definition.ubuntu_2204](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/build_definition) (resource)
 - [azuredevops_git_repository.this](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository) (resource)
 - [azuredevops_git_repository_file.ubuntu_2004](https://registry.terraform.io/providers/microsoft/azuredevops/latest/docs/resources/git_repository_file) (resource)

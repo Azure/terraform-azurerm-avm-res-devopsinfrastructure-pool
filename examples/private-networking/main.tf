@@ -184,7 +184,7 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
 
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "0.4.0"
+  version = "0.8.1"
 
   address_space       = ["10.30.0.0/16"]
   location            = azurerm_resource_group.this.location
@@ -256,10 +256,6 @@ module "managed_devops_pool" {
     module.virtual_network
   ]
 }
-
-
-
-
 
 # Region helpers
 module "regions" {

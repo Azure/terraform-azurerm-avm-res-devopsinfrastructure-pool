@@ -1,13 +1,4 @@
-variable "azure_devops_organization_name" {
-  type        = string
-  description = "Azure DevOps Organisation Name"
-}
 
-variable "azure_devops_personal_access_token" {
-  type        = string
-  description = "The personal access token used for authentication to Azure DevOps."
-  sensitive   = true
-}
 
 locals {
   tags = {
@@ -172,10 +163,10 @@ data "azurerm_client_config" "this" {}
 resource "azapi_resource_action" "resource_provider_registration" {
   for_each = local.resource_providers_to_register
 
-  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
-  type        = "Microsoft.Resources/subscriptions@2021-04-01"
   action      = "providers/${each.value.resource_provider}/register"
   method      = "POST"
+  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
 }
 
 resource "azurerm_dev_center" "this" {
@@ -195,13 +186,13 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                   = "../.."
-  resource_group_name                      = azurerm_resource_group.this.name
-  location                                 = azurerm_resource_group.this.location
-  name                                     = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id           = azurerm_dev_center_project.this.id
-  version_control_system_organization_name = var.azure_devops_organization_name
-  version_control_system_project_names     = [azuredevops_project.this.name]
+  source = "../.."
+
+  dev_center_project_resource_id = azurerm_dev_center_project.this.id
+  location                       = azurerm_resource_group.this.location
+  name                           = "mdp-${random_string.name.result}"
+  resource_group_name            = azurerm_resource_group.this.name
+  enable_telemetry               = var.enable_telemetry
   fabric_profile_images = [
     {
       well_known_image_name = "ubuntu-20.04/latest"
@@ -216,18 +207,14 @@ module "managed_devops_pool" {
       ]
     }
   ]
-  enable_telemetry = var.enable_telemetry
-  tags             = local.tags
-  depends_on       = [azapi_resource_action.resource_provider_registration]
+  tags                                     = local.tags
+  version_control_system_organization_name = var.azure_devops_organization_name
+  version_control_system_project_names     = [azuredevops_project.this.name]
+
+  depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
-output "managed_devops_pool_id" {
-  value = module.managed_devops_pool.resource_id
-}
 
-output "managed_devops_pool_name" {
-  value = module.managed_devops_pool.name
-}
 
 # Region helpers
 module "regions" {

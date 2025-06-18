@@ -11,16 +11,7 @@ There are some points of note for this example:
 - In the example we have created a custom role in order to demonstrate least privilege access, but you can also use the built in `Network Contributor` role.
 
 ```hcl
-variable "azure_devops_organization_name" {
-  type        = string
-  description = "Azure DevOps Organisation Name"
-}
 
-variable "azure_devops_personal_access_token" {
-  type        = string
-  description = "The personal access token used for authentication to Azure DevOps."
-  sensitive   = true
-}
 
 locals {
   tags = {
@@ -160,10 +151,10 @@ data "azurerm_client_config" "this" {}
 resource "azapi_resource_action" "resource_provider_registration" {
   for_each = local.resource_providers_to_register
 
-  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
-  type        = "Microsoft.Resources/subscriptions@2021-04-01"
   action      = "providers/${each.value.resource_provider}/register"
   method      = "POST"
+  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
 }
 
 resource "azurerm_role_definition" "this" {
@@ -191,6 +182,7 @@ resource "azurerm_public_ip" "this" {
   name                = "pip-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
   sku                 = "Standard"
+  zones               = ["1", "2", "3"]
 }
 
 resource "azurerm_nat_gateway" "this" {
@@ -206,12 +198,14 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
 }
 
 module "virtual_network" {
-  source              = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version             = "0.4.0"
+  source  = "Azure/avm-res-network-virtualnetwork/azurerm"
+  version = "0.4.0"
+
   address_space       = ["10.30.0.0/16"]
   location            = azurerm_resource_group.this.location
-  name                = "vnet-${random_string.name.result}"
   resource_group_name = azurerm_resource_group.this.name
+  enable_telemetry    = var.enable_telemetry
+  name                = "vnet-${random_string.name.result}"
   role_assignments = {
     virtual_network_reader = {
       role_definition_id_or_name = "Reader"
@@ -237,7 +231,6 @@ module "virtual_network" {
       }
     }
   }
-  enable_telemetry = var.enable_telemetry
 }
 
 resource "azurerm_dev_center" "this" {
@@ -257,48 +250,31 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                         = "../.."
-  resource_group_name            = azurerm_resource_group.this.name
+  source = "../.."
+
+  dev_center_project_resource_id = azurerm_dev_center_project.this.id
   location                       = azurerm_resource_group.this.location
   name                           = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id = azurerm_dev_center_project.this.id
-  subnet_id                      = module.virtual_network.subnets["subnet0"].resource_id
+  resource_group_name            = azurerm_resource_group.this.name
+  enable_telemetry               = var.enable_telemetry
   organization_profile = {
     organizations = [{
       name     = var.azure_devops_organization_name
       projects = [azuredevops_project.this.name]
     }]
   }
-  enable_telemetry = var.enable_telemetry
-  /* diagnostic_settings = {
-    sendToLogAnalytics = {
-      name                           = "sendToLogAnalytics"
-      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
-      log_analytics_destination_type = "Dedicated"
-    }
-  } */
-  tags = local.tags
+  subnet_id = module.virtual_network.subnets["subnet0"].resource_id
+  tags      = local.tags
+
   depends_on = [
     azapi_resource_action.resource_provider_registration,
     module.virtual_network
   ]
 }
 
-output "managed_devops_pool_id" {
-  value = module.managed_devops_pool.resource_id
-}
 
-output "managed_devops_pool_name" {
-  value = module.managed_devops_pool.name
-}
 
-output "virtual_network_id" {
-  value = module.virtual_network.resource_id
-}
 
-output "virtual_network_subnets" {
-  value = module.virtual_network.subnets
-}
 
 # Region helpers
 module "regions" {

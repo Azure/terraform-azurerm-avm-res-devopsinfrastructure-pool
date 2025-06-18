@@ -169,7 +169,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.5.2"
 }
 
 resource "random_integer" "region_index" {

@@ -277,7 +277,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.5.2"
 }
 
 resource "random_integer" "region_index" {
@@ -403,7 +403,7 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.1.0
+Version: 0.5.2
 
 ### <a name="module_virtual_network"></a> [virtual\_network](#module\_virtual\_network)
 

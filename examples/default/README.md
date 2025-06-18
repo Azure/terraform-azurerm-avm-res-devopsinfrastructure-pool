@@ -174,7 +174,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.3.0"
+  version = "0.5.2"
 }
 
 resource "random_integer" "region_index" {
@@ -284,7 +284,7 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.3.0
+Version: 0.5.2
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

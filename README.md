@@ -35,9 +35,9 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (>= 1.13, < 3)
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.116.0, < 5.0.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
@@ -414,6 +414,42 @@ object({
 ```
 
 Default: `null`
+
+### <a name="input_managed_devops_pool_retry_on_error"></a> [managed\_devops\_pool\_retry\_on\_error](#input\_managed\_devops\_pool\_retry\_on\_error)
+
+Description: A list of error messages to retry creating the Managed DevOps Pool resource on. This is used to retry the resource creation if the error message matches one of the values in the list. Defaults to a list containing a regex pattern that matches the error message when the user is not found in the Azure DevOps organization.
+
+Type: `list(string)`
+
+Default:
+
+```json
+[
+  "Failed to provision agent pool. Exception: The logged in user,.*, was not found in the Azure DevOps organization provided,.*"
+]
+```
+
+### <a name="input_managed_devops_pool_timeouts"></a> [managed\_devops\_pool\_timeouts](#input\_managed\_devops\_pool\_timeouts)
+
+Description: Timeouts for the Managed DevOps Pool resource. The following properties can be specified:
+
+- `create` - (Optional) The timeout for creating the resource. Defaults to `30m`.
+- `update` - (Optional) The timeout for updating the resource. Defaults to `30m`.
+- `read` - (Optional) The timeout for reading the resource. Defaults to `30m`.
+- `delete` - (Optional) The timeout for deleting the resource. Defaults to `30m`.
+
+Type:
+
+```hcl
+object({
+    create = optional(string, "30m")
+    update = optional(string, "30m")
+    read   = optional(string, "30m")
+    delete = optional(string, "30m")
+  })
+```
+
+Default: `{}`
 
 ### <a name="input_managed_identities"></a> [managed\_identities](#input\_managed\_identities)
 

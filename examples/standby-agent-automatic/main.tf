@@ -1,14 +1,3 @@
-variable "azure_devops_organization_name" {
-  type        = string
-  description = "Azure DevOps Organisation Name"
-}
-
-variable "azure_devops_personal_access_token" {
-  type        = string
-  description = "The personal access token used for authentication to Azure DevOps."
-  sensitive   = true
-}
-
 locals {
   tags = {
     scenario = "default"
@@ -20,7 +9,7 @@ terraform {
   required_providers {
     azapi = {
       source  = "azure/azapi"
-      version = "~> 1.14"
+      version = "~> 2.0"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -28,11 +17,11 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.113"
+      version = "~> 4.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.5"
+      version = "~> 3.6.3"
     }
   }
 }
@@ -137,10 +126,10 @@ data "azurerm_client_config" "this" {}
 resource "azapi_resource_action" "resource_provider_registration" {
   for_each = local.resource_providers_to_register
 
-  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
-  type        = "Microsoft.Resources/subscriptions@2021-04-01"
   action      = "providers/${each.value.resource_provider}/register"
   method      = "POST"
+  resource_id = "/subscriptions/${data.azurerm_client_config.this.subscription_id}"
+  type        = "Microsoft.Resources/subscriptions@2021-04-01"
 }
 
 resource "azurerm_dev_center" "this" {
@@ -160,44 +149,27 @@ resource "azurerm_dev_center_project" "this" {
 
 # This is the module call
 module "managed_devops_pool" {
-  source                                    = "../.."
-  resource_group_name                       = azurerm_resource_group.this.name
+  source = "../.."
+
+  dev_center_project_resource_id            = azurerm_dev_center_project.this.id
   location                                  = azurerm_resource_group.this.location
   name                                      = "mdp-${random_string.name.result}"
-  dev_center_project_resource_id            = azurerm_dev_center_project.this.id
-  version_control_system_organization_name  = var.azure_devops_organization_name
-  version_control_system_project_names      = [azuredevops_project.this.name]
+  resource_group_name                       = azurerm_resource_group.this.name
   agent_profile_resource_prediction_profile = "Automatic"
   enable_telemetry                          = var.enable_telemetry
+  tags                                      = local.tags
+  version_control_system_organization_name  = var.azure_devops_organization_name
+  version_control_system_project_names      = [azuredevops_project.this.name]
 
-  # This example sets the standby agent automatic scaling to the most cost effective option. This block is not required for `Balanced`.
-
-  # agent_profile_resource_prediction_profile_automatic = {
-  #   prediction_preference = "MostCostEffective"
-  # }
-
-  # This example sets the standby agent automatic scaling to the best performance option. This block is not required for `Balanced`.
-
-  # agent_profile_resource_prediction_profile_automatic = {
-  #   prediction_preference = "BestPerformance"
-  # }
-
-  tags       = local.tags
   depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
-output "managed_devops_pool_id" {
-  value = module.managed_devops_pool.resource_id
-}
 
-output "managed_devops_pool_name" {
-  value = module.managed_devops_pool.name
-}
 
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.5.2"
 }
 
 resource "random_integer" "region_index" {

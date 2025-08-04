@@ -194,6 +194,29 @@ DESCRIPTION
   }
 }
 
+variable "certificate_ids" {
+  type        = list(string)
+  default     = null
+  description = "The resource IDs of the certificates to use for the pool. This is used to configure the secrets management settings for the pool."
+}
+
+variable "certificate_store_location" {
+  type        = string
+  default     = null
+  description = "The location of the certificate store to use for the pool."
+}
+
+variable "certificate_store_name" {
+  type        = string
+  default     = null
+  description = "The name of the certificate store to use for the pool. Defaults to 'My' if not provided."
+
+  validation {
+    condition     = var.certificate_store_name != null ? can(index(["Root", "My"], var.certificate_store_name)) : true
+    error_message = "The certificate_store_name must be one of: 'Root', 'My'."
+  }
+}
+
 variable "diagnostic_settings" {
   type = map(object({
     name                                     = optional(string, null)
@@ -330,6 +353,12 @@ variable "fabric_profile_sku_name" {
   type        = string
   default     = "Standard_D2ads_v5"
   description = "The SKU name of the fabric profile, make sure you have enough quota for the SKU, the CPUs are multiplied by the `maximum_concurrency` value, make sure you request enough quota, defaults to 'Standard_D2ads_v5' which has 2 vCPU Cores. so if maximum_concurrency is 2, you will need quota for 4 vCPU Cores and so on."
+}
+
+variable "key_exportable" {
+  type        = bool
+  default     = false
+  description = "Whether the certificate is exportable or not. Defaults to false."
 }
 
 variable "lock" {

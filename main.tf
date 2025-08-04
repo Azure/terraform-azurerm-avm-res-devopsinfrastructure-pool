@@ -2,7 +2,7 @@ resource "azapi_resource" "managed_devops_pool" {
   location  = var.location
   name      = var.name
   parent_id = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
-  type      = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
+  type      = "Microsoft.DevOpsInfrastructure/pools@2025-01-21"
   body = {
     properties = {
       devCenterProjectResourceId = var.dev_center_project_resource_id
@@ -29,9 +29,15 @@ resource "azapi_resource" "managed_devops_pool" {
         networkProfile = var.subnet_id != null ? {
           subnetId = var.subnet_id
         } : null
-        osProfile = {
+        osProfile = var.certificate_ids != null ? {
           logonType = var.fabric_profile_os_profile_logon_type
-        }
+          secretsManagementSettings = {
+            certificateStoreLocation = var.certificate_store_location
+            certificateStoreName     = var.certificate_store_name
+            observedCertificates     = var.certificate_ids
+            keyExportable            = var.key_exportable
+          }
+        } : null
         storageProfile = {
           osDiskStorageAccountType = var.fabric_profile_os_disk_storage_account_type
           dataDisks = [for data_disk in var.fabric_profile_data_disks : {

@@ -268,6 +268,30 @@ Default:
 }
 ```
 
+### <a name="input_certificate_ids"></a> [certificate\_ids](#input\_certificate\_ids)
+
+Description: The resource IDs of the certificates to use for the pool. This is used to configure the secrets management settings for the pool.
+
+Type: `list(string)`
+
+Default: `null`
+
+### <a name="input_certificate_store_location"></a> [certificate\_store\_location](#input\_certificate\_store\_location)
+
+Description: The location of the certificate store to use for the pool.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_certificate_store_name"></a> [certificate\_store\_name](#input\_certificate\_store\_name)
+
+Description: The name of the certificate store to use for the pool. Defaults to 'My' if not provided.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
 Description: A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -397,6 +421,14 @@ Description: The SKU name of the fabric profile, make sure you have enough quota
 Type: `string`
 
 Default: `"Standard_D2ads_v5"`
+
+### <a name="input_key_exportable"></a> [key\_exportable](#input\_key\_exportable)
+
+Description: Whether the certificate is exportable or not. Defaults to false.
+
+Type: `bool`
+
+Default: `false`
 
 ### <a name="input_lock"></a> [lock](#input\_lock)
 

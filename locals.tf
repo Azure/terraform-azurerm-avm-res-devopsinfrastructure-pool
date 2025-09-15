@@ -23,7 +23,7 @@ locals {
       name        = var.version_control_system_organization_name
       projects    = tolist(var.version_control_system_project_names)
       parallelism = var.maximum_concurrency
-      openAccess = var.openAccess
+      openAccess  = var.openAccess
     }]
     permission_profile = {
       kind   = "CreatorOnly"

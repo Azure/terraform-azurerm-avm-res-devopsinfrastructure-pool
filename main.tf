@@ -2,7 +2,7 @@ resource "azapi_resource" "managed_devops_pool" {
   location  = var.location
   name      = var.name
   parent_id = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
-  type      = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
+  type      = "Microsoft.DevOpsInfrastructure/pools@2025-09-20"
   body = {
     properties = {
       devCenterProjectResourceId = var.dev_center_project_resource_id
@@ -28,6 +28,8 @@ resource "azapi_resource" "managed_devops_pool" {
 
         networkProfile = var.subnet_id != null ? {
           subnetId = var.subnet_id
+        } : var.fabric_profile_network_profile_static_ip_address_count != null ? {
+          staticIpAddressCount = var.fabric_profile_network_profile_static_ip_address_count
         } : null
         osProfile = {
           logonType = var.fabric_profile_os_profile_logon_type

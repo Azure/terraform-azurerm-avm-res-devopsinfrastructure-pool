@@ -250,6 +250,17 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "fabric_profile_network_profile_static_ip_address_count" {
+  type        = number
+  default     = null
+  description = "The number of static outbound IP addresses (1-16). MDP creates a NAT gateway in the same region. Mutually exclusive with `subnet_id`."
+
+  validation {
+    condition     = var.fabric_profile_network_profile_static_ip_address_count == null || (var.fabric_profile_network_profile_static_ip_address_count >= 1 && var.fabric_profile_network_profile_static_ip_address_count <= 16)
+    error_message = "static_ip_address_count must be between 1 and 16."
+  }
+}
+
 variable "fabric_profile_data_disks" {
   type = list(object({
     caching              = optional(string, "ReadWrite")

@@ -29,7 +29,7 @@ resource "azapi_resource" "managed_devops_pool" {
         networkProfile = var.subnet_id != null ? {
           subnetId = var.subnet_id
         } : var.fabric_profile_network_profile_static_ip_address_count != null ? {
-          staticIpAddressCount = var.fabric_profile_network_profile_static_ip_address_count
+          staticIpAddressCount = tonumber(var.fabric_profile_network_profile_static_ip_address_count)
         } : null
         osProfile = {
           logonType = var.fabric_profile_os_profile_logon_type

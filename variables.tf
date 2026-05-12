@@ -250,17 +250,6 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "fabric_profile_network_profile_static_ip_address_count" {
-  type        = number
-  default     = null
-  description = "The number of static outbound IP addresses (1-16). MDP creates a NAT gateway in the same region. Mutually exclusive with `subnet_id`."
-
-  validation {
-    condition     = var.fabric_profile_network_profile_static_ip_address_count == null || (var.fabric_profile_network_profile_static_ip_address_count >= 1 && var.fabric_profile_network_profile_static_ip_address_count <= 16)
-    error_message = "static_ip_address_count must be between 1 and 16."
-  }
-}
-
 variable "fabric_profile_data_disks" {
   type = list(object({
     caching              = optional(string, "ReadWrite")
@@ -483,6 +472,26 @@ variable "subnet_id" {
   type        = string
   default     = null
   description = "The virtual network subnet resource id to use for private networking."
+
+  validation {
+    condition     = !(var.subnet_id != null && var.static_ip_address_count != null)
+    error_message = "subnet_id and static_ip_address_count are mutually exclusive. Only one can be set at a time."
+  }
+}
+
+variable "static_ip_address_count" {
+  type        = number
+  default     = null
+  description = "The number of static outbound IP addresses (1-16). MDP creates a NAT gateway in the same region. Mutually exclusive with `subnet_id`."
+
+  validation {
+    condition     = var.static_ip_address_count == null || (var.static_ip_address_count >= 1 && var.static_ip_address_count <= 16)
+    error_message = "static_ip_address_count must be between 1 and 16."
+  }
+  validation {
+    condition     = !(var.static_ip_address_count != null && var.subnet_id != null)
+    error_message = "static_ip_address_count and subnet_id are mutually exclusive. Only one can be set at a time."
+  }
 }
 
 variable "subscription_id" {

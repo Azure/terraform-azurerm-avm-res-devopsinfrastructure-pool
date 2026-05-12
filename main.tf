@@ -26,9 +26,9 @@ resource "azapi_resource" "managed_devops_pool" {
           resourceId         = image.resource_id
         }]
 
-        networkProfile = (var.subnet_id != null || var.fabric_profile_network_profile_static_ip_address_count != null) ? {
+        networkProfile = (var.subnet_id != null || var.static_ip_address_count != null) ? {
           subnetId             = var.subnet_id
-          staticIpAddressCount = var.fabric_profile_network_profile_static_ip_address_count
+          staticIpAddressCount = var.static_ip_address_count
         } : null
         
         osProfile = {

@@ -471,12 +471,7 @@ DESCRIPTION
 variable "subnet_id" {
   type        = string
   default     = null
-  description = "The virtual network subnet resource id to use for private networking."
-
-  validation {
-    condition     = !(var.subnet_id != null && var.static_ip_address_count != null)
-    error_message = "subnet_id and static_ip_address_count are mutually exclusive. Only one can be set at a time."
-  }
+  description = "The virtual network subnet resource id to use for private networking. Mutually exclusive with `static_ip_address_count`."
 }
 
 variable "static_ip_address_count" {

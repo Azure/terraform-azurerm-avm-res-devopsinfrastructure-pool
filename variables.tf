@@ -483,10 +483,6 @@ variable "static_ip_address_count" {
     condition     = var.static_ip_address_count == null || (var.static_ip_address_count >= 1 && var.static_ip_address_count <= 16)
     error_message = "static_ip_address_count must be between 1 and 16."
   }
-  validation {
-    condition     = !(var.static_ip_address_count != null && var.subnet_id != null)
-    error_message = "static_ip_address_count and subnet_id are mutually exclusive. Only one can be set at a time."
-  }
 }
 
 variable "subscription_id" {

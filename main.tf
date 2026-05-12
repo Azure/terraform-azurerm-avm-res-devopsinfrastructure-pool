@@ -71,6 +71,12 @@ resource "azapi_resource" "managed_devops_pool" {
     read   = try(var.managed_devops_pool_timeouts.read, null)
     update = try(var.managed_devops_pool_timeouts.update, null)
   }
+  lifecycle {
+    precondition {
+      condition     = !(var.static_ip_address_count != null && var.subnet_id != null)
+      error_message = "static_ip_address_count and subnet_id are mutually exclusive. Only one can be set at a time."
+    }
+  }
 }
 
 # required AVM resources interfaces

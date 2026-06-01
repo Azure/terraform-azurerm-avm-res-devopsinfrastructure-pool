@@ -472,6 +472,11 @@ variable "subnet_id" {
   type        = string
   default     = null
   description = "The virtual network subnet resource id to use for private networking. Mutually exclusive with `static_ip_address_count`."
+
+  validation {
+    condition = var.subnet_id == null || (var.subnet_id != null && var.static_ip_address_count == null)
+    error_message = "subnet_id and static_ip_address_count are mutually exclusive."
+  }
 }
 
 variable "static_ip_address_count" {
@@ -480,8 +485,13 @@ variable "static_ip_address_count" {
   description = "The number of static outbound IP addresses (1-16). MDP creates a NAT gateway in the same region. Mutually exclusive with `subnet_id`."
 
   validation {
-    condition     = var.static_ip_address_count == null || (var.static_ip_address_count >= 1 && var.static_ip_address_count <= 16)
+    condition     = var.static_ip_address_count == null || (var.static_ip_address_count >= 1 && var.static_ip_address_count <= 16) 
     error_message = "static_ip_address_count must be between 1 and 16."
+  }
+
+  validation {
+    condition = var.static_ip_address_count == null || (var.subnet_id == null && var.static_ip_address_count != null)
+    error_message = "subnet_id and static_ip_address_count are mutually exclusive."
   }
 }
 

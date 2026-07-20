@@ -14,7 +14,7 @@ terraform {
     }
     azuread = {
       source  = "hashicorp/azuread"
-      version = "~> 2.53"
+      version = "~> 3.9"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -26,7 +26,7 @@ terraform {
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6.3"
+      version = "~> 3.9.0"
     }
   }
 }
@@ -185,7 +185,7 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
 
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "0.8.1"
+  version = "0.19.0"
 
   address_space       = ["10.30.0.0/16"]
   location            = azurerm_resource_group.this.location
@@ -261,7 +261,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.5.2"
+  version = "0.12.0"
 }
 
 resource "random_integer" "region_index" {

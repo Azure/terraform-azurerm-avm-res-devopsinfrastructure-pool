@@ -426,7 +426,7 @@ An object representing the configuration for an organization profile, including 
 
 This is for advanced use cases where you need to specify permissions and multiple organization.
 
-If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
+If not supplied, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
 
 - `organizations` - (Required) A list of objects representing the organizations.
   - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.

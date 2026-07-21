@@ -2,7 +2,7 @@ resource "azapi_resource" "managed_devops_pool" {
   location  = var.location
   name      = var.name
   parent_id = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
-  type      = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
+  type      = "Microsoft.DevOpsInfrastructure/pools@2025-09-20"
   body = {
     properties = {
       devCenterProjectResourceId = var.dev_center_project_resource_id
@@ -26,9 +26,11 @@ resource "azapi_resource" "managed_devops_pool" {
           resourceId         = image.resource_id
         }]
 
-        networkProfile = var.subnet_id != null ? {
-          subnetId = var.subnet_id
+        networkProfile = (var.subnet_id != null || var.static_ip_address_count != null) ? {
+          subnetId             = var.subnet_id
+          staticIpAddressCount = var.static_ip_address_count
         } : null
+        
         osProfile = {
           logonType = var.fabric_profile_os_profile_logon_type
         }
@@ -68,6 +70,12 @@ resource "azapi_resource" "managed_devops_pool" {
     delete = try(var.managed_devops_pool_timeouts.delete, null)
     read   = try(var.managed_devops_pool_timeouts.read, null)
     update = try(var.managed_devops_pool_timeouts.update, null)
+  }
+  lifecycle {
+    precondition {
+      condition     = !(var.static_ip_address_count != null && var.subnet_id != null)
+      error_message = "static_ip_address_count and subnet_id are mutually exclusive. Only one can be set at a time."
+    }
   }
 }
 

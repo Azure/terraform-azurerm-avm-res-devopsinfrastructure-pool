@@ -1,0 +1,52 @@
+---
+name: Dependabot Pre-Commit
+
+on:
+  pull_request:
+    types: ['opened', 'reopened', 'synchronize']
+
+# Dependabot-triggered runs get a read-only GITHUB_TOKEN by default; declaring
+# permissions explicitly is the supported way to lift that so we can push.
+permissions:
+  contents: write
+
+jobs:
+  pre-commit:
+    name: Apply Pre-Commit Fixes
+    # Only Terraform bumps leave generated files (README version tables,
+    # formatting) stale. github_actions bumps produce no pre-commit diff.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'dependabot/terraform/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Run pre-commit
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod a+x ./avm
+          # pre-commit exits non-zero when it rewrites files, so run again to verify.
+          ./avm pre-commit
+          if ($LASTEXITCODE -ne 0) {
+            ./avm pre-commit
+          }
+
+      - name: Commit and push pre-commit fixes
+        shell: pwsh
+        run: |
+          if (-not (git status --porcelain)) {
+            Write-Host "No pre-commit changes to push."
+            exit 0
+          }
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore(deps): apply pre-commit fixes"
+          git push

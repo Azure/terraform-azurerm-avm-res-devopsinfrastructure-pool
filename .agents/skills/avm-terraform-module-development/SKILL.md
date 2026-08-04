@@ -8,6 +8,30 @@ glob: "**/*.terraform,**/*.tf,**/*.tfvars,**/*.tfstate,**/*.tflint.hcl,**/*.tf.j
 
 Azure Verified Modules (AVM) are pre-built, tested, and validated Terraform and Bicep modules that follow Azure best practices. Use this skill when reviewing, fixing, or extending an AVM Terraform module so the change stays aligned with the published AVM specifications.
 
+## Toolchain
+
+This repository uses the `Avm.Authoring` PowerShell module. It replaces the old `./avm` wrapper script, the `Makefile`, and the AVM container -- all three have been removed. Everything runs natively on Windows, Linux, and macOS under PowerShell 7+.
+
+```powershell
+Install-PSResource -Name Avm.Authoring -Scope CurrentUser -TrustRepository
+Import-Module Avm.Authoring
+```
+
+`avm` then works from any directory inside the module; it resolves the module root itself, and downloads and pins the tools it needs (`terraform`, `tflint`, `terraform-docs`, ...) on first use. There is no separate tool-install step.
+
+| Command | Purpose |
+|---------|---------|
+| `avm pre-commit` | Mandatory pre-commit gauntlet: sync, convention check, transform, format, docs. |
+| `avm pr-check` | Mandatory post-commit gauntlet. |
+| `avm test unit` | Run `tests/unit` with mocked providers. |
+| `avm test integration` | Run `tests/integration` against real Azure. |
+| `avm test e2e` | Deploy, idempotency-check, and destroy the `examples/`. |
+| `avm sync` | Reconcile governance-managed files. |
+| `avm transform`, `avm format`, `avm docs` | Individual fixers. |
+| `avm lint`, `avm check convention`, `avm check policy` | Individual gates. |
+
+Every command accepts `-Path` to target a directory other than the current one, and `-Ecosystem terraform` to skip ecosystem auto-detection. Commands report failure by throwing, so `$LASTEXITCODE` is not set -- in a script, use `try`/`catch` rather than testing the exit code.
+
 ## Before you start
 
 ### 1. Identify the module type
@@ -121,27 +145,27 @@ For AzAPI resource patterns, schema lookups, and the `Get-AzureSchema` CLI tool,
 
 Unit tests use **provider mocking** and live in the `tests/unit` directory. Add or update unit tests when your change introduces new logic, variables, or outputs that can be validated without deploying real infrastructure. For test writing guidance, syntax, and patterns, read [terraform-test.md](references/terraform-test.md).
 
-```bash
-PORCH_NO_TUI=1 ./avm tf-test-unit
+```powershell
+avm test unit
 ```
 
 ### Step 5: Add integration tests (if justified)
 
 Integration tests do **not** use provider mocking and live in the `tests/integration` directory. Add or update integration tests when your change requires validation against real Azure infrastructure. For test writing guidance, syntax, and patterns, read [terraform-test.md](references/terraform-test.md).
 
-```bash
-PORCH_NO_TUI=1 ./avm tf-test-integration
+```powershell
+avm test integration
 ```
 
 ### Step 6: Add or update examples (if justified)
 
 If your change affects module usage or introduces new functionality, add or update examples in the `examples/` directory. Test only the pertinent example:
 
-```bash
-PORCH_NO_TUI=1 AVM_EXAMPLE="<ExampleDir>" ./avm test-examples
+```powershell
+avm test e2e -Example <ExampleDir>
 ```
 
-When running on Windows, distributing tests across multiple Azure subscriptions, or retaining deployed resources for manual validation, see [example-test.md](references/example-test.md) for manual local testing of examples (init, plan, apply, idempotency check, and optional destroy).
+Run `avm test e2e -List` to see which examples are runnable; drop an `.e2eignore` file into an example directory to opt it out. When distributing tests across multiple Azure subscriptions, or retaining deployed resources for manual validation, see [example-test.md](references/example-test.md) for manual local testing of examples (init, plan, apply, idempotency check, and optional destroy).
 
 ### Step 7: Update documentation (if justified)
 
@@ -151,8 +175,8 @@ If documentation changes are needed, edit `_header.md`. **NEVER edit README.md d
 
 This must **always** be run before committing:
 
-```bash
-PORCH_NO_TUI=1 ./avm pre-commit
+```powershell
+avm pre-commit
 ```
 
 ### Step 9: Commit changes
@@ -166,8 +190,8 @@ git commit -m "<type>: <meaningful description>"
 
 This must **always** be run after committing:
 
-```bash
-PORCH_NO_TUI=1 ./avm pr-check
+```powershell
+avm pr-check
 ```
 
 ### Step 11: Push and open a PR
@@ -201,7 +225,8 @@ When creating the PR, include:
 - **Using the legacy `diagnostic_settings` shape** instead of the v2 schema. The utility module's `diagnostic_settings_v2` input is the required entry point.
 - **Omitting `retry`, `timeouts`, or `resource_types` from an `azapi_resource`** — or failing to cascade them unchanged into submodules. All three are MUST-level AVM interfaces.
 - **Treating `timeouts` as an attribute.** It is a block; use `dynamic "timeouts"` so the `null` default works.
-- **Skipping `./avm pre-commit` before commit, or `./avm pr-check` after commit.** Both are mandatory.
+- **Skipping `avm pre-commit` before commit, or `avm pr-check` after commit.** Both are mandatory.
+- **Reaching for `./avm`, `make`, or the AVM container.** All three were removed from this repository -- use the `Avm.Authoring` PowerShell module instead (see [Toolchain](#toolchain)).
 
 ## Specifications
 

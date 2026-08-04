@@ -13,31 +13,40 @@ permissions:
 jobs:
   pre-commit:
     name: Apply Pre-Commit Fixes
-    # Only Terraform bumps leave generated files (README version tables,
-    # formatting) stale. github_actions bumps produce no pre-commit diff.
-    if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      startsWith(github.event.pull_request.head.ref, 'dependabot/terraform/')
+    if: startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pull request branch
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.head_ref }}
+
+      - name: Install Avm.Authoring
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Module -ListAvailable -Name 'Microsoft.PowerShell.PSResourceGet')) {
+            Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser -Force -AllowClobber
+          }
+          Import-Module 'Microsoft.PowerShell.PSResourceGet'
+          Install-PSResource -Name Avm.Authoring -Scope CurrentUser -TrustRepository
+          Import-Module Avm.Authoring
+          avm version
 
       - name: Run pre-commit
         shell: pwsh
         env:
+          AVM_HOME: ${{ runner.temp }}/avm-home
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          chmod a+x ./avm
-          # pre-commit exits non-zero when it rewrites files, so run again to verify.
-          ./avm pre-commit
-          if ($LASTEXITCODE -ne 0) {
-            ./avm pre-commit
-          }
+          $ErrorActionPreference = 'Stop'
+          Import-Module Avm.Authoring
+          avm pre-commit
 
+      # Runs even when a fixer reports a failure so any fixes that were applied
+      # reach the branch instead of being discarded.
       - name: Commit and push pre-commit fixes
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           if (-not (git status --porcelain)) {

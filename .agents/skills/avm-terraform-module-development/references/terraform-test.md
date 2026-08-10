@@ -11,10 +11,10 @@ Tests MUST live in one of two directories. No other location is permitted.
   tests/
     unit/
       unit.tftest.hcl          # Unit tests WITH mock_provider blocks
-      setup.ps1                # Optional pre-test setup script (PowerShell only)
+      setup.ps1                # Optional pre-test setup script
     integration/
       integration.tftest.hcl   # Integration tests WITHOUT mock_provider blocks
-      setup.ps1                # Optional pre-test setup script (PowerShell only)
+      setup.ps1                # Optional pre-test setup script
 ```
 
 Submodules under `./modules/` follow the same pattern — each can have its own `tests/unit/` and `tests/integration/` directories.
@@ -357,13 +357,13 @@ run "test_module_b" {
 
 If `tests/unit/setup.ps1` or `tests/integration/setup.ps1` exists, it runs in an isolated `pwsh` subprocess before `terraform init`. Use this for environment preparation. A failing hook records an issue and skips that target.
 
-Shell hooks are **not** supported: a `setup.sh` or `teardown.sh` under `tests/<tier>/` fails the run before Terraform is invoked. Port them to `setup.ps1`.
+Shell hooks are **not** supported: a `setup.sh` or `teardown.sh` under `tests/<tier>/` fails the run before Terraform is invoked. Port them to PowerShell.
 
 ## Running Tests
 
-Tests are run by the `Avm.Authoring` PowerShell module. There is no container and no wrapper script.
+Tests run via the `Avm.Authoring` PowerShell module. The temporary `./avm` and `avm.bat` compatibility launchers only print migration guidance and do not run tests.
 
-```powershell
+```pwsh
 # Unit tests
 avm test unit
 
@@ -372,22 +372,20 @@ avm test integration
 ```
 
 The test runner automatically:
-1. Enumerates targets: the module root plus each immediate `modules/*` directory. A target is runnable when it ships at least one `*.tftest.hcl` under `tests/<tier>/`; if none are runnable the run is skipped rather than failed.
-2. Fails fast if any target has a `setup.sh` or `teardown.sh` under `tests/<tier>/`.
+1. Enumerates the module root and each immediate `modules/*` directory.
+2. Fails fast if a target has a `setup.sh` or `teardown.sh` under `tests/<tier>/`.
 3. Runs `tests/<tier>/setup.ps1` if present.
 4. Runs `terraform init -backend=false -upgrade=false -input=false -test-directory=tests/<tier>`. Pass `-NoInit` to skip this.
-5. Runs `terraform test -test-directory=tests/<tier> -no-color -json`, streaming a progress line per run block.
-6. Reports failing run blocks and error diagnostics, prefixing submodule paths with `modules/<name>/`.
+5. Runs `terraform test -test-directory=tests/<tier> -no-color -json`.
+6. Reports failing run blocks and diagnostics with submodule paths.
 
-Tests execute in place against the module directory -- nothing is copied to a temp location, so `.terraform/` and lock files are left as `terraform init` wrote them.
-
-Note that bare `avm test` is `terraform validate`, not the test suite. Always name the tier: `avm test unit`, `avm test integration`, or `avm test e2e`.
+Tests execute in place, so `.terraform/` and lock files remain after `terraform init`. Bare `avm test` runs `terraform validate`; always name the test tier.
 
 ## Cleanup and Destruction
 
 Resources created by integration tests are destroyed automatically in **reverse run block order** after test completion. This handles dependency ordering correctly.
 
-For debugging, the `terraform test -no-cleanup` flag prevents automatic destruction — but note that this must be run directly with `terraform`, not via `avm test`.
+For debugging, the `terraform test -no-cleanup` flag prevents automatic destruction, but it must be run directly with `terraform`.
 
 ## Best Practices
 

@@ -5,8 +5,6 @@ on:
   pull_request:
     types: ['opened', 'reopened', 'synchronize']
 
-# Dependabot-triggered runs get a read-only GITHUB_TOKEN by default; declaring
-# permissions explicitly is the supported way to lift that so we can push.
 permissions:
   contents: write
 
@@ -43,8 +41,6 @@ jobs:
           Import-Module Avm.Authoring
           avm pre-commit
 
-      # Runs even when a fixer reports a failure so any fixes that were applied
-      # reach the branch instead of being discarded.
       - name: Commit and push pre-commit fixes
         if: ${{ !cancelled() }}
         shell: pwsh

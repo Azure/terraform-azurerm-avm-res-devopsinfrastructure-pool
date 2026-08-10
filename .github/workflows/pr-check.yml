@@ -1,4 +1,3 @@
-# Canary-tooling override exercising the PowerShell Gallery toolchain instead of the container/make toolchain.
 ---
 name: PR Check
 on:

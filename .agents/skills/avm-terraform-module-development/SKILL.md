@@ -10,14 +10,7 @@ Azure Verified Modules (AVM) are pre-built, tested, and validated Terraform and 
 
 ## Toolchain
 
-This repository uses the `Avm.Authoring` PowerShell module. It replaces the old `./avm` wrapper script, the `Makefile`, and the AVM container -- all three have been removed. Everything runs natively on Windows, Linux, and macOS under PowerShell 7+.
-
-```powershell
-Install-PSResource -Name Avm.Authoring -Scope CurrentUser -TrustRepository
-Import-Module Avm.Authoring
-```
-
-`avm` then works from any directory inside the module; it resolves the module root itself, and downloads and pins the tools it needs (`terraform`, `tflint`, `terraform-docs`, ...) on first use. There is no separate tool-install step.
+This repository uses the `Avm.Authoring` PowerShell module. It replaces the old `Makefile`, AVM container, and Porch pipelines. Everything runs natively on Windows, Linux, and macOS under PowerShell 7.4+.
 
 | Command | Purpose |
 |---------|---------|
@@ -25,12 +18,12 @@ Import-Module Avm.Authoring
 | `avm pr-check` | Mandatory post-commit gauntlet. |
 | `avm test unit` | Run `tests/unit` with mocked providers. |
 | `avm test integration` | Run `tests/integration` against real Azure. |
-| `avm test e2e` | Deploy, idempotency-check, and destroy the `examples/`. |
+| `avm test e2e` | Deploy, idempotency-check, and destroy examples. |
 | `avm sync` | Reconcile governance-managed files. |
-| `avm transform`, `avm format`, `avm docs` | Individual fixers. |
-| `avm lint`, `avm check convention`, `avm check policy` | Individual gates. |
+| `avm transform`, `avm format`, `avm docs` | Run individual fixers. |
+| `avm lint`, `avm check convention`, `avm check policy` | Run individual gates. |
 
-Every command accepts `-Path` to target a directory other than the current one, and `-Ecosystem terraform` to skip ecosystem auto-detection. Commands report failure by throwing, so `$LASTEXITCODE` is not set -- in a script, use `try`/`catch` rather than testing the exit code.
+Every command accepts `-Path` to target another directory and `-Ecosystem terraform` to skip ecosystem auto-detection. Commands report failure by throwing, so scripts should use `try`/`catch` instead of checking `$LASTEXITCODE`.
 
 ## Before you start
 
@@ -99,7 +92,7 @@ For full AzAPI patterns, the `parent_id` variable shape, the `Get-AzureSchema` l
 - `TFFR3` / `TFNFR26` — Pin `required_providers` versions (`Azure/azapi`, `Azure/modtm`, `hashicorp/random`, any other providers used) in the single `terraform {}` block in `terraform.tf`. AzAPI version policy is governed by `TFFR3`.
 - `TFNFR27` — No provider configuration blocks in modules (only `required_providers`). Provider configuration belongs in the consumer's root module.
 
-The `mapotf` pre-commit config under [mapotf-configs/pre-commit](../../../../../mapotf-configs/pre-commit/) enforces the telemetry block and provider versions automatically — do not hand-edit those generated files.
+The `mapotf` pre-commit configs enforce the telemetry block and provider versions automatically — do not hand-edit the files they generate. The configs ship inside the `Avm.Authoring` module and are applied by `avm transform` (which `avm pre-commit` runs for you); a repository may override them by committing its own `config/mapotf/pre-commit/` directory.
 
 ### Standard interfaces
 
@@ -120,16 +113,29 @@ For a single concise summary of how a resource or pattern module fits together (
 
 Follow these steps in order when fixing an issue or adding a feature.
 
+### Step 0: Load the AVM toolchain
+
+Every `avm` command below comes from the `Avm.Authoring` PowerShell module. Install it once, then import it in each PowerShell session:
+
+```pwsh
+Install-PSResource -Name Avm.Authoring -Repository PSGallery -TrustRepository
+Import-Module Avm.Authoring
+```
+
+The module downloads and pins the tools it needs (terraform, tflint, terraform-docs, conftest, mapotf) on first use, so there is no separate install step. Set `AVM_NO_AUTO_INSTALL=1` in air-gapped environments and pre-warm the cache with `avm tool install <name>` instead.
+
+The repository-root `./avm` and `avm.bat` compatibility launchers remain temporarily, but only print migration guidance and exit with an error. The `avm.ps1` launcher has been removed. Run `avm` from an imported `Avm.Authoring` PowerShell module, and do not set `PORCH_NO_TUI`.
+
 ### Step 1: Start from a clean main branch
 
-```bash
+```pwsh
 git checkout main
 git pull
 ```
 
 ### Step 2: Create and checkout a feature/issue branch
 
-```bash
+```pwsh
 git checkout -b feature/<short-description>
 # or
 git checkout -b fix/<issue-number>-<short-description>
@@ -145,7 +151,7 @@ For AzAPI resource patterns, schema lookups, and the `Get-AzureSchema` CLI tool,
 
 Unit tests use **provider mocking** and live in the `tests/unit` directory. Add or update unit tests when your change introduces new logic, variables, or outputs that can be validated without deploying real infrastructure. For test writing guidance, syntax, and patterns, read [terraform-test.md](references/terraform-test.md).
 
-```powershell
+```pwsh
 avm test unit
 ```
 
@@ -153,7 +159,7 @@ avm test unit
 
 Integration tests do **not** use provider mocking and live in the `tests/integration` directory. Add or update integration tests when your change requires validation against real Azure infrastructure. For test writing guidance, syntax, and patterns, read [terraform-test.md](references/terraform-test.md).
 
-```powershell
+```pwsh
 avm test integration
 ```
 
@@ -161,11 +167,11 @@ avm test integration
 
 If your change affects module usage or introduces new functionality, add or update examples in the `examples/` directory. Test only the pertinent example:
 
-```powershell
+```pwsh
 avm test e2e -Example <ExampleDir>
 ```
 
-Run `avm test e2e -List` to see which examples are runnable; drop an `.e2eignore` file into an example directory to opt it out. When distributing tests across multiple Azure subscriptions, or retaining deployed resources for manual validation, see [example-test.md](references/example-test.md) for manual local testing of examples (init, plan, apply, idempotency check, and optional destroy).
+Run `avm test e2e -List` to see runnable examples; add an `.e2eignore` file to exclude one. When distributing tests across multiple Azure subscriptions or retaining deployed resources for manual validation, see [example-test.md](references/example-test.md).
 
 ### Step 7: Update documentation (if justified)
 
@@ -175,13 +181,13 @@ If documentation changes are needed, edit `_header.md`. **NEVER edit README.md d
 
 This must **always** be run before committing:
 
-```powershell
+```pwsh
 avm pre-commit
 ```
 
 ### Step 9: Commit changes
 
-```bash
+```pwsh
 git add .
 git commit -m "<type>: <meaningful description>"
 ```
@@ -190,7 +196,7 @@ git commit -m "<type>: <meaningful description>"
 
 This must **always** be run after committing:
 
-```powershell
+```pwsh
 avm pr-check
 ```
 
@@ -198,7 +204,7 @@ avm pr-check
 
 Push the branch to remote and open a pull request with a meaningful description. Reference any issues that should be closed.
 
-```bash
+```pwsh
 git push -u origin HEAD
 ```
 
@@ -226,7 +232,7 @@ When creating the PR, include:
 - **Omitting `retry`, `timeouts`, or `resource_types` from an `azapi_resource`** — or failing to cascade them unchanged into submodules. All three are MUST-level AVM interfaces.
 - **Treating `timeouts` as an attribute.** It is a block; use `dynamic "timeouts"` so the `null` default works.
 - **Skipping `avm pre-commit` before commit, or `avm pr-check` after commit.** Both are mandatory.
-- **Reaching for `./avm`, `make`, or the AVM container.** All three were removed from this repository -- use the `Avm.Authoring` PowerShell module instead (see [Toolchain](#toolchain)).
+- **Reaching for `./avm`, `make`, Porch, or the AVM container.** Use the `Avm.Authoring` PowerShell module instead.
 
 ## Specifications
 

@@ -63,6 +63,7 @@ resource "azapi_resource" "managed_devops_pool" {
       identity_ids = identity.value.user_assigned_resource_ids
     }
   }
+
   timeouts {
     create = try(var.managed_devops_pool_timeouts.create, null)
     delete = try(var.managed_devops_pool_timeouts.delete, null)
@@ -121,6 +122,7 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
       category_group = enabled_log.value
     }
   }
+
   dynamic "metric" {
     for_each = each.value.metric_categories
 

@@ -1122,16 +1122,11 @@ Classify every issue as exactly one of these GitHub issue types and use the `set
 
 Choose the single best fit from the issue's primary intent. Do not create or use any other issue type.
 
-The issue's **current** native type is in `/tmp/gh-aw/agent/issue-type.txt` — one line, either `Bug`, `Feature`, `Task`, `NONE` (no type set), or `UNKNOWN` (lookup failed). Read that file; it is the only trustworthy source. Your issue-reading tool does not return the native type at all, so you cannot see it any other way.
+**Always emit `set-issue-type` with your chosen type.** There is no "already correct, skip it" case to judge: applying the type an issue already has is a harmless no-op, and re-applying it costs nothing. Emitting unconditionally is what makes this reliable.
 
-Two things look like the type and are not it. Neither one may be used to conclude a type is already set:
+Do not decide this from the `Type: …` **labels** or from the **`### Issue Type?`** field in the issue body. Neither is the native issue type — the labels are a separate system, and the body field is free text the reporter chose. An issue can carry `Type: Bug :bug:` and a body saying `Bug` while its native type is unset, which is the normal state of any issue triaged before issue types existed.
 
-- the `Type: …` **labels** (`Type: Bug :bug:`, `Type: Feature Request :heavy_plus_sign:`, …) — these are labels, a separate system;
-- the **`### Issue Type?`** field in the issue body — that is free text the reporter picked in the issue form.
-
-An issue can carry `Type: Bug :bug:` and a body saying `Bug` while its native type is `NONE`. That is the normal state of any issue triaged before issue types existed.
-
-So: emit `set-issue-type` whenever the file does **not** already contain your chosen type — including when it contains `NONE` or `UNKNOWN`. Only skip it when the file already holds exactly the type you would set.
+`/tmp/gh-aw/agent/issue-type.txt` holds the issue's current native type — one line, either `Bug`, `Feature`, `Task`, `NONE`, or `UNKNOWN`. It exists because your issue-reading tool does not return the type at all. It is context, not a gate: read it only if you intend to mention the previous value, and if you do, quote it exactly as the file reads. Never describe a type as already set unless that file literally says so.
 
 Issue types are independent of labels, so continue with label analysis after setting the type.
 
@@ -1345,7 +1340,7 @@ If the issue has already been triaged, do not skip analysis. Publish the current
 The bullet points should include:
 
 - **Duplicate check result:** Report only the candidates that carry a verdict a maintainer would act on — the confirmed duplicate, any possible duplicate, and anything genuinely related — with links and a few words of reason. If closing as duplicate, state this clearly with the link. Every remaining `.must_compare` number still has to be accounted for, but as a single "not related" line inside the collapsed accordion, not here. If nothing came back related, this bullet is one sentence.
-- **Issue type:** State the type you set, or that the type in `/tmp/gh-aw/agent/issue-type.txt` already matched. Base this only on that file — never claim a type "was already set" from a `Type: …` label or the body's `### Issue Type?` field.
+- **Issue type:** Name the type you set, in one short line — you set one on every run, so this is never "no change needed". Mention a previous value only if `/tmp/gh-aw/agent/issue-type.txt` literally contains it; a run that reported "already set to `Bug`" while that file read `NONE` is the defect this wording exists to prevent.
 - **Labels applied:** List only the labels you **added** in this run, with a brief justification for each (e.g., "Applied `bug` — issue reports a failed `terraform apply`"). **Do NOT list or re-justify labels that were already on the issue.** If you added no new labels, say so in a single short line (do not enumerate the existing labels).
 - **No labels applied:** If no labels could be confidently determined, state this.
 - **Labels skipped:** If label definitions could not be loaded, state "Labels could not be applied due to a data loading error."
@@ -1506,7 +1501,7 @@ Every issue safe output carries it, in every combination — never only the firs
 - If you **close the issue** because it is conclusively fixed: Use `add-comment` for the triage summary **first**, then use `close-issue` with `state_reason: completed` and a body naming the fixing PR. Do not set `duplicate_of` on this path.
 - If the **Human Reopen Override** is active: Never use `close-issue`, regardless of duplicate or fix confidence. Continue with any non-closing outputs and explain the veto in the triage comment.
 - If you find an unlinked **confirmed-fix PR**: Use `update-pull-request` with `pull_request_number`, `operation: append`, and a body of exactly `Fixes #<issue-number>`. Do not update likely or merely related candidates.
-- Use `set-issue-type` with `issue_number` and exactly one of `Bug`, `Feature`, or `Task` unless `/tmp/gh-aw/agent/issue-type.txt` already holds that exact type. A file reading `NONE` or `UNKNOWN` means you must emit it.
+- Use `set-issue-type` with `issue_number` and exactly one of `Bug`, `Feature`, or `Task` on **every** run. Emit it unconditionally — never skip it on the grounds that the type looks already correct.
 - If you find a **possible duplicate** but are **not highly confident** it is the same root cause: do **NOT** use `close-issue`. Use `add-comment` to flag `Possible duplicate of #N` (with the link) and leave the issue open; apply labels with `add-labels` as usual (but not `duplicate`). Reserve `close-issue` for confirmed duplicates only.
 - If you **add labels AND post a comment** (most common case): Call **both** `add-labels` (to apply labels to the issue) AND `add-comment` (for the triage summary), and put `item_number` on **both** — the observed failure mode is a run that attaches the number to the comment and omits it from the labels, which loses the labels while the comment still publishes. ⚠️ Listing label names inside the comment body does NOT apply them — you MUST call `add-labels` as a separate action.
 - If you **only post a comment** (no labels to add, no close): Use `add-comment`.

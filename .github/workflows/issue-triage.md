@@ -107,6 +107,24 @@ steps:
     ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
   run: |
     echo "${ISSUE_NUMBER}" > /tmp/gh-aw/agent/issue-number.txt
+- name: Fetch current issue type
+  env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
+    ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+  run: |
+    set -o pipefail
+    TYPE_FILE=/tmp/gh-aw/agent/issue-type.txt
+    RAW=$(mktemp)
+    # The agent's issue-reading tool does not return the native issue type, and
+    # the `Type: …` labels and the template's "### Issue Type?" field are not it.
+    if gh api "repos/${GH_AW_GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}" \
+      --jq '.type.name // "NONE"' > "${RAW}"; then
+      tr -d '\r' < "${RAW}" | head -n 1 > "${TYPE_FILE}"
+    else
+      echo "UNKNOWN" > "${TYPE_FILE}"
+    fi
+    rm -f "${RAW}"
 - name: Fetch issue close and reopen history
   env:
     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -892,7 +910,7 @@ steps:
                   "  - `" + (.query // "") + "` → "
                   + (
                       if (((.numbers // []) | length) == 0) then "no results"
-                      else ((.numbers // []) | map("#" + (. | tostring)) | join(", "))
+                      else ((.numbers // []) | map("`#" + (. | tostring) + "`") | join(", "))
                       end
                     )
                 )
@@ -935,7 +953,7 @@ steps:
       if ! jq -r '
           def numlist($nums):
             if (($nums // []) | length) == 0 then "none"
-            else (($nums // []) | sort | map("#" + (. | tostring)) | join(", "))
+            else (($nums // []) | sort | map("`#" + (. | tostring) + "`") | join(", "))
             end;
           ([.open_inventory_screening[]
             | select(.lexical_relevance.plausible == true)
@@ -1102,7 +1120,20 @@ Classify every issue as exactly one of these GitHub issue types and use the `set
 - **Feature** — Feature requests for new user-facing capabilities, resources, variables, outputs, integrations, or enhancements to existing behavior.
 - **Task** — Concrete maintenance, documentation, testing, CI, refactoring, investigation, or other actionable work that is neither a defect nor a feature request.
 
-Choose the single best fit from the issue's primary intent. Do not create or use any other issue type. If the issue already has the correct type, leave it unchanged. Issue types are independent of labels, so continue with label analysis after setting the type.
+Choose the single best fit from the issue's primary intent. Do not create or use any other issue type.
+
+The issue's **current** native type is in `/tmp/gh-aw/agent/issue-type.txt` — one line, either `Bug`, `Feature`, `Task`, `NONE` (no type set), or `UNKNOWN` (lookup failed). Read that file; it is the only trustworthy source. Your issue-reading tool does not return the native type at all, so you cannot see it any other way.
+
+Two things look like the type and are not it. Neither one may be used to conclude a type is already set:
+
+- the `Type: …` **labels** (`Type: Bug :bug:`, `Type: Feature Request :heavy_plus_sign:`, …) — these are labels, a separate system;
+- the **`### Issue Type?`** field in the issue body — that is free text the reporter picked in the issue form.
+
+An issue can carry `Type: Bug :bug:` and a body saying `Bug` while its native type is `NONE`. That is the normal state of any issue triaged before issue types existed.
+
+So: emit `set-issue-type` whenever the file does **not** already contain your chosen type — including when it contains `NONE` or `UNKNOWN`. Only skip it when the file already holds exactly the type you would set.
+
+Issue types are independent of labels, so continue with label analysis after setting the type.
 
 Analyse the issue content and attach the most appropriate labels from the repository's existing label set. Apply **all** labels that are relevant.
 
@@ -1289,7 +1320,7 @@ ALWAYS post **exactly one new** comment on the issue using the `add-comment` saf
 <details>
 <summary><b>🔎 What this triage looked at</b></summary>
 
-<paste the contents of /tmp/gh-aw/agent/triage-audit-block.md verbatim here, then list the key sources you opened — issues, source files, releases>
+<paste the contents of /tmp/gh-aw/agent/triage-audit-block.md verbatim here, then the contents of /tmp/gh-aw/agent/triage-screening-status.md verbatim, then the not-related must_compare line, then the key sources you opened — issues, source files, releases>
 
 </details>
 ```
@@ -1313,21 +1344,45 @@ If the issue has already been triaged, do not skip analysis. Publish the current
 
 The bullet points should include:
 
-- **Duplicate check result:** Whether duplicates or similar issues were found, with links to those issues. If closing as duplicate, state this clearly with the link. Account for every number in the index's `.must_compare` list here — each one gets a short verdict (duplicate, possible duplicate, related, or not related) with a few words of reason, even when the verdict is "not related". Silence about a mandatory-comparison candidate is read as a candidate you never opened.
-- **Issue type:** State whether you set the issue type to `Bug`, `Feature`, or `Task`, or whether the existing type was already correct.
+- **Duplicate check result:** Report only the candidates that carry a verdict a maintainer would act on — the confirmed duplicate, any possible duplicate, and anything genuinely related — with links and a few words of reason. If closing as duplicate, state this clearly with the link. Every remaining `.must_compare` number still has to be accounted for, but as a single "not related" line inside the collapsed accordion, not here. If nothing came back related, this bullet is one sentence.
+- **Issue type:** State the type you set, or that the type in `/tmp/gh-aw/agent/issue-type.txt` already matched. Base this only on that file — never claim a type "was already set" from a `Type: …` label or the body's `### Issue Type?` field.
 - **Labels applied:** List only the labels you **added** in this run, with a brief justification for each (e.g., "Applied `bug` — issue reports a failed `terraform apply`"). **Do NOT list or re-justify labels that were already on the issue.** If you added no new labels, say so in a single short line (do not enumerate the existing labels).
 - **No labels applied:** If no labels could be confidently determined, state this.
 - **Labels skipped:** If label definitions could not be loaded, state "Labels could not be applied due to a data loading error."
 - **Suggested fix:** If you identified a likely root cause or potential fix from investigating the source code, include it with specific file/line references. If the issue is a question or consideration rather than a bug, note that. If you could not determine a fix, state that further investigation is needed.
-- **Already fixed:** If a recent release or merged PR already addresses this issue, tell the user which version or PR contains the fix and recommend they upgrade.
+
+  Put any configuration, HCL, or command a reader might copy in a fenced code block with a language tag, never inline in the prose. Keep the surrounding explanation to a sentence before and, if needed, a sentence after:
+
+  ````
+  As a workaround, add the pattern to `managed_devops_pool_retry_on_error`:
+
+  ```hcl
+  managed_devops_pool_retry_on_error = [
+    "Missing Resource Identity After Update"
+  ]
+  ```
+
+  The longer-term fix is to add this pattern to the variable's default in `variables.tf`.
+  ````
+- **Already fixed:** If a recent release or merged PR already addresses this issue, tell the user which version or PR contains the fix and recommend they upgrade. If nothing does, this bullet is one short sentence saying so. Do not list, count, or characterise the PRs you inspected to reach that conclusion — the rendered screening line in the accordion already records exactly which ones were mandatory, so restating them here is duplicate evidence, not reassurance.
 - **PR linked:** If you appended `Fixes #<issue-number>` to a confirmed-fix PR, identify the PR and state that it is now linked. Do not claim an ambiguous candidate was linked.
 - **Related or partial PRs:** Always report any PR you classified as **likely related fix** or **related-only** in Step 4, with a link and a one-line reason, even though you deliberately did not link or close against it. Do not omit these just because no write action was taken on them — surfacing them is the point, so a maintainer can judge candidates you intentionally left out of the automated decision. Every candidate named as lexically plausible in the rendered screening-status line must appear here unless you reported it as a confirmed fix; if you judged one irrelevant, say so and why, rather than leaving it unmentioned.
-- **PR-evidence and screening status:** This bullet is rendered for you. Read `/tmp/gh-aw/agent/triage-screening-status.md` (`cat /tmp/gh-aw/agent/triage-screening-status.md`) and paste its single line into the comment **verbatim**, exactly as written, including every count and candidate number. Do not re-derive any figure from the artifacts, do not shorten or omit a candidate list, and do not replace a list with a summary such as "none this run" — the rendered line is already correct, and any difference between that file and your comment is a defect. If, and only if, you fully inspected candidates beyond the ones it names, append one sentence naming those extra numbers. If the rendered line reports that the index did not load, treat this as a failed evidence load: state that confirmed-fix closure and PR linking were skipped (see Step 4 — Incomplete or Failed Evidence Load or Screening), while noting that duplicate-closure decisions were not affected. Never report truncation based on display length.
+- **PR-evidence and screening status:** This line is rendered for you, and it belongs **inside the collapsed accordion**, not in the visible bullets — it is machine evidence for auditing a run, not a finding a maintainer needs to read. Handling rules are under the accordion bullet below.
 - **Closure:** If closing an issue that is conclusively fixed, state the evidence supporting closure and whether the fix is released or only present on the default branch. Include a note advising the author to reopen with evidence if the problem persists.
 - **Human reopen override:** If this workflow previously closed the issue and a person later reopened it, state that the issue will remain open for human review even if the agent found a duplicate or an existing fix.
-- **What this triage looked at (collapsed accordion):** At the very bottom of the comment, include a collapsed `<details>` block that opens with the verbatim contents of `/tmp/gh-aw/agent/triage-audit-block.md`, then names the deterministic PR-evidence sources that fired (e.g. timeline cross-reference, exact issue-number match in a title/body/comment, commit-message reference, commit-body `Refs #N`), and the key sources you inspected. This is for transparency — keep it out of the visible summary above.
+- **What this triage looked at (collapsed accordion):** At the very bottom of the comment, include a collapsed `<details>` block containing, in order: the verbatim contents of `/tmp/gh-aw/agent/triage-audit-block.md`; the verbatim contents of `/tmp/gh-aw/agent/triage-screening-status.md`; one line accounting for any `.must_compare` candidates you judged not related; the deterministic PR-evidence sources that fired (e.g. timeline cross-reference, exact issue-number match in a title/body/comment, commit-message reference, commit-body `Refs #N`); and the key sources you inspected. This is the run's audit trail — keeping it here is what lets the visible summary stay short.
+
+  Paste both rendered files **verbatim**, exactly as written, including every count and candidate number. Do not re-derive any figure, do not shorten or omit a candidate list, and do not replace a list with a summary such as "none this run" — the rendered lines are already correct, and any difference between those files and your comment is a defect. If, and only if, you fully inspected candidates beyond the ones the screening line names, append one sentence naming those extra numbers. If the screening line reports that the index did not load, that is a failed evidence load: say so in the **visible** bullets, stating that confirmed-fix closure and PR linking were skipped (see Step 4 — Incomplete or Failed Evidence Load or Screening) while noting duplicate-closure decisions were unaffected. Never report truncation based on display length.
 
 Keep the comment concise and factual. Do not speculate or add unnecessary detail.
+
+**Length.** The visible part of the comment — everything above the accordion — should read in well under a minute. Aim for roughly 1,500 characters and treat 2,500 as the ceiling; past that, the finding is being buried rather than explained. The accordion is exempt, which is exactly why the exhaustive lists live there. To stay inside it:
+
+- One bullet per finding. Omit a bullet entirely when it has nothing to report, rather than writing a sentence to say so.
+- Name a specific issue or PR when it changes what the reader should do. Do not enumerate what you ruled out — the accordion already proves the coverage.
+- Never restate the same evidence in two bullets.
+- Do not narrate your own process ("I checked all N candidates", "searches were run"). The accordion is the record of process.
+- Write bare `#123` only when you intend GitHub to expand it into that item's title. For any list of more than two or three numbers, use `` `#123` `` so the list stays a list instead of rendering as a paragraph of titles.
 
 ### Duplicate Closure Flow
 
@@ -1451,7 +1506,7 @@ Every issue safe output carries it, in every combination — never only the firs
 - If you **close the issue** because it is conclusively fixed: Use `add-comment` for the triage summary **first**, then use `close-issue` with `state_reason: completed` and a body naming the fixing PR. Do not set `duplicate_of` on this path.
 - If the **Human Reopen Override** is active: Never use `close-issue`, regardless of duplicate or fix confidence. Continue with any non-closing outputs and explain the veto in the triage comment.
 - If you find an unlinked **confirmed-fix PR**: Use `update-pull-request` with `pull_request_number`, `operation: append`, and a body of exactly `Fixes #<issue-number>`. Do not update likely or merely related candidates.
-- Use `set-issue-type` with `issue_number` and exactly one of `Bug`, `Feature`, or `Task` when the issue's current type does not match its primary intent.
+- Use `set-issue-type` with `issue_number` and exactly one of `Bug`, `Feature`, or `Task` unless `/tmp/gh-aw/agent/issue-type.txt` already holds that exact type. A file reading `NONE` or `UNKNOWN` means you must emit it.
 - If you find a **possible duplicate** but are **not highly confident** it is the same root cause: do **NOT** use `close-issue`. Use `add-comment` to flag `Possible duplicate of #N` (with the link) and leave the issue open; apply labels with `add-labels` as usual (but not `duplicate`). Reserve `close-issue` for confirmed duplicates only.
 - If you **add labels AND post a comment** (most common case): Call **both** `add-labels` (to apply labels to the issue) AND `add-comment` (for the triage summary), and put `item_number` on **both** — the observed failure mode is a run that attaches the number to the comment and omits it from the labels, which loses the labels while the comment still publishes. ⚠️ Listing label names inside the comment body does NOT apply them — you MUST call `add-labels` as a separate action.
 - If you **only post a comment** (no labels to add, no close): Use `add-comment`.

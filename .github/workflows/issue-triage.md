@@ -980,7 +980,7 @@ You are an AI agent that performs initial triage on newly created or reopened is
 This repository contains the Terraform code for a single Azure Verified Module (AVM) module. The issue, the labels, the releases, and the code to investigate are all in this repository.
 
 > **Target issue for this run: #${{ github.event.inputs.issue_number || github.event.issue.number }}**
-> Always use this number as `item_number` in issue safe output calls (`add-comment`, `add-labels`, `close-issue`). Use it as `issue_number` for `set-issue-type`. When updating a pull request, use its number as `pull_request_number`.
+> Always use this number as `item_number` in issue safe output calls (`add-comment`, `add-labels`). Use it as `issue_number` for `close-issue` and `set-issue-type`. When updating a pull request, use its number as `pull_request_number`.
 
 ## Your Task
 
@@ -1442,10 +1442,10 @@ Every issue safe output carries it, in every combination — never only the firs
 {"type": "add_labels", "item_number": ${{ github.event.inputs.issue_number || github.event.issue.number }}, "labels": ["bug"]}
 {"type": "set_issue_type", "issue_number": ${{ github.event.inputs.issue_number || github.event.issue.number }}, "issue_type": "Bug"}
 {"type": "add_comment", "item_number": ${{ github.event.inputs.issue_number || github.event.issue.number }}, "body": "## 🤖 GitHub Agentic Workflow Automated Triage 🤖 …"}
-{"type": "close_issue", "item_number": ${{ github.event.inputs.issue_number || github.event.issue.number }}, "state_reason": "duplicate", "duplicate_of": 4321, "body": "Duplicate of #4321"}
+{"type": "close_issue", "issue_number": ${{ github.event.inputs.issue_number || github.event.issue.number }}, "state_reason": "duplicate", "duplicate_of": 4321, "body": "Duplicate of #4321"}
 ```
 
-`add-comment`, `add-labels`, and `close-issue` use `item_number`; `set-issue-type` uses `issue_number`. When updating a pull request, use that PR's number as `pull_request_number`. Before you emit anything, check each call you are about to make and confirm the number is present on all of them.
+`add-comment` and `add-labels` use `item_number`; `close-issue` and `set-issue-type` use `issue_number`. When updating a pull request, use that PR's number as `pull_request_number`. Before you emit anything, check each call you are about to make and confirm the number is present on all of them.
 
 - If you **close the issue** as a duplicate: Use `add-comment` for the triage summary **first**, then use `close-issue` with `state_reason: duplicate`, `duplicate_of: <canonical-issue-number>`, and a body of exactly `Duplicate of #<canonical-issue-number>`. See the Duplicate Closure Flow.
 - If you **close the issue** because it is conclusively fixed: Use `add-comment` for the triage summary **first**, then use `close-issue` with `state_reason: completed` and a body naming the fixing PR. Do not set `duplicate_of` on this path.

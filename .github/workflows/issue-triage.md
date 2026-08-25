@@ -1154,6 +1154,7 @@ The `name` values below are illustrative. Match on the *concept*, then emit the 
 
 - **`repo-labels.json` is the only authoritative source of label names. Copy the `name` field byte-for-byte.** Label names in this repository embed literal emoji shortcodes such as `:heavy_plus_sign:`. Never render a shortcode into a Unicode emoji, never re-order or re-space a name, and never reconstruct a name from memory or from the table above. `Type: Feature Request ➕` is *not* the same label as `Type: Feature Request :heavy_plus_sign:` and will be rejected.
 - **`add-labels` is atomic: if any one name in the batch does not exist, the entire batch is discarded** and the issue receives no labels at all. Verify every name against `repo-labels.json` before emitting.
+- **`add-labels` requires at least one label. Never emit it with an empty list** — `{"type": "add_labels", "labels": []}` is rejected with "No labels provided" and fails the run. When the issue already carries every label it needs, the correct action is to not call `add-labels` at all and to say so in one line in the triage comment. This is the opposite of `set-issue-type`, which you emit on every run: re-applying a type is a harmless no-op, whereas an empty label batch is an error.
 - Never remove labels that already exist on the issue.
 - **In your triage comment, only list and justify the labels you are *adding* in this run. Do not mention, list, or re-justify labels that were already present on the issue** — the maintainer can already see those, so repeating them is noise.
 - Only add labels that already exist in the repository's label set.
@@ -1504,7 +1505,7 @@ Every issue safe output carries it, in every combination — never only the firs
 - Use `set-issue-type` with `issue_number` and exactly one of `Bug`, `Feature`, or `Task` on **every** run. Emit it unconditionally — never skip it on the grounds that the type looks already correct.
 - If you find a **possible duplicate** but are **not highly confident** it is the same root cause: do **NOT** use `close-issue`. Use `add-comment` to flag `Possible duplicate of #N` (with the link) and leave the issue open; apply labels with `add-labels` as usual (but not `duplicate`). Reserve `close-issue` for confirmed duplicates only.
 - If you **add labels AND post a comment** (most common case): Call **both** `add-labels` (to apply labels to the issue) AND `add-comment` (for the triage summary), and put `item_number` on **both** — the observed failure mode is a run that attaches the number to the comment and omits it from the labels, which loses the labels while the comment still publishes. ⚠️ Listing label names inside the comment body does NOT apply them — you MUST call `add-labels` as a separate action.
-- If you **only post a comment** (no labels to add, no close): Use `add-comment`.
+- If you **only post a comment** (no labels to add, no close): Use `add-comment` alone. Do not also emit `add-labels` with an empty list to signal "nothing to add" — omit the call entirely. The unconditional rule above applies to `set-issue-type` only.
 - On a manual rerun, perform a complete fresh assessment. Use `add-comment` for the current result; the handler will mark older comments carrying this same workflow's hidden `gh-aw-workflow-id` as outdated and minimize them.
 
 ---

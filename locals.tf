@@ -23,6 +23,7 @@ locals {
       name        = var.version_control_system_organization_name
       projects    = tolist(var.version_control_system_project_names)
       parallelism = var.maximum_concurrency
+      open_access = var.open_access
     }]
     permission_profile = {
       kind   = "CreatorOnly"
@@ -54,6 +55,7 @@ locals {
       url         = "https://dev.azure.com/${org.name}"
       projects    = org.projects
       parallelism = org.parallelism != null ? org.parallelism : var.maximum_concurrency
+      open_access = org.open_access != null ? org.open_access : false
     }]
     permission_profile = {
       kind   = local.organization_profile_input.permission_profile.kind # "CreatorOnly", "Inherit", "SpecificAccounts"

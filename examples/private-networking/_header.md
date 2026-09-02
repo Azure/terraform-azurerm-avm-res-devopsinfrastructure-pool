@@ -2,7 +2,7 @@
 
 >**⚠️WARNING!⚠️**: THIS IS A PREVIEW SERVICE, MICROSOFT MAY NOT PROVIDE SUPPORT FOR THIS, PLEASE CHECK THE PRODUCT DOCS FOR CLARIFICATION
 
-This deploys the module with Private Networking for Azure Managed DevOps Pools.
+This deploys the module with Private Networking for Azure Managed DevOps Pools and sends all supported logs to a Log Analytics workspace.
 
 There are some points of note for this example:
 

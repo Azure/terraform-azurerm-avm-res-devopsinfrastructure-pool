@@ -549,6 +549,14 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_static_ip_address_count"></a> [static\_ip\_address\_count](#input\_static\_ip\_address\_count)
+
+Description: The number of static outbound IP addresses (1-16). MDP creates a NAT gateway in the same region. Mutually exclusive with `subnet_id`.
+
+Type: `number`
+
+Default: `null`
+
 ### <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id)
 
 Description: The virtual network subnet resource id to use for private networking.

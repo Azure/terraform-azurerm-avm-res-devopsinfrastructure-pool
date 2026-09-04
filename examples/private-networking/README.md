@@ -79,6 +79,7 @@ resource "azuredevops_git_repository" "this" {
   project_id     = azuredevops_project.this.id
   name           = local.repository_name
   default_branch = local.default_branch
+
   initialization {
     init_type = "Clean"
   }
@@ -114,6 +115,7 @@ resource "azuredevops_build_definition" "this" {
 data "azuredevops_agent_queue" "this" {
   project_id = azuredevops_project.this.id
   name       = module.managed_devops_pool.name
+
   depends_on = [module.managed_devops_pool]
 }
 

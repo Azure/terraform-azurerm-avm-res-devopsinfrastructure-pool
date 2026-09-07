@@ -189,11 +189,10 @@ module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
   version = "0.22.2"
 
-  address_space       = ["10.30.0.0/16"]
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
-  name                = "vnet-${random_string.name.result}"
+  location         = azurerm_resource_group.this.location
+  address_space    = ["10.30.0.0/16"]
+  enable_telemetry = var.enable_telemetry
+  name             = "vnet-${random_string.name.result}"
   role_assignments = {
     virtual_network_reader = {
       role_definition_id_or_name = "Reader"
@@ -219,6 +218,7 @@ module "virtual_network" {
       }
     }
   }
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_dev_center" "this" {

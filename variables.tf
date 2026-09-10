@@ -510,3 +510,13 @@ variable "version_control_system_type" {
     error_message = "The version_control_system_type must be one of: 'azuredevops' or 'github'."
   }
 }
+
+variable "work_folder" {
+  type        = string
+  default     = null
+  description = <<DESCRIPTION
+Optional custom agent work folder, applied to every agent in the pool via `runtimeConfiguration.workFolder`. For example, set this to a path on an attached data disk (e.g. `/mnt/storage/sdc/w` on Linux) to route the agent's working directory off the OS disk.
+
+Requires API version `2025-09-20` or later, which this module now targets. See <https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-storage> for details. If left `null`, no `runtimeConfiguration` is sent and the platform default work folder applies.
+DESCRIPTION
+}

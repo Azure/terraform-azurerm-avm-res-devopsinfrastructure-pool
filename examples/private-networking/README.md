@@ -28,7 +28,7 @@ terraform {
     }
     azuread = {
       source  = "hashicorp/azuread"
-      version = "~> 2.53"
+      version = "~> 3.9"
     }
     azuredevops = {
       source  = "microsoft/azuredevops"
@@ -36,11 +36,11 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "~> 5.5"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6.3"
+      version = "~> 3.9.0"
     }
   }
 }
@@ -201,13 +201,12 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
 
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "0.8.1"
+  version = "0.22.2"
 
-  address_space       = ["10.30.0.0/16"]
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
-  name                = "vnet-${random_string.name.result}"
+  location         = azurerm_resource_group.this.location
+  address_space    = ["10.30.0.0/16"]
+  enable_telemetry = var.enable_telemetry
+  name             = "vnet-${random_string.name.result}"
   role_assignments = {
     virtual_network_reader = {
       role_definition_id_or_name = "Reader"
@@ -233,6 +232,7 @@ module "virtual_network" {
       }
     }
   }
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_dev_center" "this" {
@@ -277,7 +277,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.5.2"
+  version = "0.12.0"
 }
 
 resource "random_integer" "region_index" {
@@ -306,13 +306,13 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
-- <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) (~> 2.53)
+- <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) (~> 3.9)
 
 - <a name="requirement_azuredevops"></a> [azuredevops](#requirement\_azuredevops) (~> 1.1)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 5.5)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.6.3)
+- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.9.0)
 
 ## Resources
 
@@ -403,13 +403,13 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.5.2
+Version: 0.12.0
 
 ### <a name="module_virtual_network"></a> [virtual\_network](#module\_virtual\_network)
 
 Source: Azure/avm-res-network-virtualnetwork/azurerm
 
-Version: 0.8.1
+Version: 0.22.2
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

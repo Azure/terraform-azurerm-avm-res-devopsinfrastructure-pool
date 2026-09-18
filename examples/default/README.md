@@ -177,6 +177,8 @@ module "managed_devops_pool" {
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.5.2"
+
+  enable_telemetry = var.enable_telemetry
 }
 
 resource "random_integer" "region_index" {
@@ -258,7 +260,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `true`
+Default: `false`
 
 ## Outputs
 

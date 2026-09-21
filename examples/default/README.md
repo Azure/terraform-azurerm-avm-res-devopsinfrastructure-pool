@@ -29,7 +29,7 @@ terraform {
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6.3"
+      version = "~> 3.9.1"
     }
   }
 }
@@ -176,7 +176,7 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.5.2"
+  version = "0.12.0"
 
   enable_telemetry = var.enable_telemetry
 }
@@ -211,7 +211,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.6.3)
+- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.9.1)
 
 ## Resources
 
@@ -288,7 +288,7 @@ Version:
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: 0.5.2
+Version: 0.12.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

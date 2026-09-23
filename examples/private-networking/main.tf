@@ -241,10 +241,17 @@ module "managed_devops_pool" {
   source = "../.."
 
   dev_center_project_resource_id = azurerm_dev_center_project.this.id
-  location                       = azurerm_resource_group.this.location
-  name                           = "mdp-${random_string.name.result}"
-  resource_group_name            = azurerm_resource_group.this.name
-  enable_telemetry               = var.enable_telemetry
+  diagnostic_settings = {
+    all_logs = {
+      log_groups            = ["allLogs"]
+      metric_categories     = []
+      workspace_resource_id = azurerm_log_analytics_workspace.this.id
+    }
+  }
+  location            = azurerm_resource_group.this.location
+  name                = "mdp-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  enable_telemetry    = var.enable_telemetry
   organization_profile = {
     organizations = [{
       name     = var.azure_devops_organization_name

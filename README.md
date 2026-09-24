@@ -597,6 +597,16 @@ Type: `string`
 
 Default: `"azuredevops"`
 
+### <a name="input_work_folder"></a> [work\_folder](#input\_work\_folder)
+
+Description: Optional custom agent work folder, applied to every agent in the pool via `runtimeConfiguration.workFolder`. For example, set this to a path on an attached data disk (e.g. `/mnt/storage/sdc/w` on Linux) to route the agent's working directory off the OS disk.
+
+Requires API version `2025-09-20` or later, which this module now targets. See <https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-storage> for details. If left `null`, no `runtimeConfiguration` is sent and the platform default work folder applies.
+
+Type: `string`
+
+Default: `null`
+
 ## Outputs
 
 The following outputs are exported:

@@ -404,6 +404,17 @@ variable "maximum_concurrency" {
   }
 }
 
+variable "openAccess" {
+  type        = bool
+  default     = false
+  description = <<DESCRIPTION
+This variable controls whether or not access is open for all pipelines within a project.
+For more information see <https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-security?view=azure-devops&tabs=azure-portal%2Cwindows#configure-open-access-for-pipelines-to-your-pool>
+If set to false, then specific pipelines must be individually authorized to run on the pool.  This method is the default.
+DESCRIPTION
+  nullable    = false
+}
+
 variable "organization_profile" {
   type = object({
     kind = optional(string, "AzureDevOps")
@@ -411,6 +422,7 @@ variable "organization_profile" {
       name        = string
       projects    = optional(list(string), []) # List of all Projects names this agent should run on, if empty, it will run on all projects.
       parallelism = optional(number)           # If multiple organizations are specified, this value needs to be set, otherwise it will use the maximum_concurrency value.
+      openAccess  = optional(bool, false)      # If set to true, the agent pool will have open access for all pipelines within a project.
     }))
     permission_profile = optional(object({
       kind   = optional(string, "CreatorOnly")
@@ -432,6 +444,7 @@ If not suppled, then `version_control_system_organization_name` and optionally `
   - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.
   - `projects` - (Optional) A list of project names this agent should run on. If empty, it will run on all projects. Defaults to `[]`.
   - `parallelism` - (Optional) The parallelism value. If multiple organizations are specified, this value needs to be set and cannot exceed the total value of `maximum_concurrency`; otherwise, it will use the `maximum_concurrency` value as default or the value you define for single Organization.
+  - `openAccess` - (Optional) If set to false, then specific pipelines must be individually authorized to run on the pool.  This method is the default.
 - `permission_profile` - (Required) An object representing the permission profile.
   - `kind` - (Required) The kind of permission profile, possible values are `CreatorOnly`, `Inherit`, and `SpecificAccounts`, if `SpecificAccounts` is chosen, you must provide a list of users and/or groups.
   - `users` - (Optional) A list of users for the permission profile, supported value is the `ObjectID` or `UserPrincipalName`. Defaults to `null`.

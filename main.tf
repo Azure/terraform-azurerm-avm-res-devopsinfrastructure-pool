@@ -2,7 +2,7 @@ resource "azapi_resource" "managed_devops_pool" {
   location  = var.location
   name      = var.name
   parent_id = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}"
-  type      = "Microsoft.DevOpsInfrastructure/pools@2024-10-19"
+  type      = "Microsoft.DevOpsInfrastructure/pools@2025-01-21"
   body = {
     properties = {
       devCenterProjectResourceId = var.dev_center_project_resource_id

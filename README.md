@@ -304,8 +304,8 @@ Default: `{}`
 
 ### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
 
-Description: This variable controls whether or not telemetry is enabled for the module.  
-For more information see <https://aka.ms/avm/telemetryinfo>.  
+Description: This variable controls whether or not telemetry is enabled for the module.
+For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
@@ -484,7 +484,7 @@ Description: An object representing the configuration for an organization profil
 
 This is for advanced use cases where you need to specify permissions and multiple organization.
 
-If not suppled, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
+If not supplied, then `version_control_system_organization_name` and optionally `version_control_system_project_names` must be supplied.
 
 - `organizations` - (Required) A list of objects representing the organizations.
   - `name` - (Required) The name of the organization, without the `https://dev.azure.com/` prefix.

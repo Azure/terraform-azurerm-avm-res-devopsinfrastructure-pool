@@ -4,7 +4,7 @@
 
 >**⚠️WARNING!⚠️**: THIS IS A PREVIEW SERVICE, MICROSOFT MAY NOT PROVIDE SUPPORT FOR THIS, PLEASE CHECK THE PRODUCT DOCS FOR CLARIFICATION
 
-This deploys the module with Private Networking for Azure Managed DevOps Pools.
+This deploys the module with Private Networking for Azure Managed DevOps Pools and sends all supported logs to a Log Analytics workspace.
 
 There are some points of note for this example:
 
@@ -255,10 +255,17 @@ module "managed_devops_pool" {
   source = "../.."
 
   dev_center_project_resource_id = azurerm_dev_center_project.this.id
-  location                       = azurerm_resource_group.this.location
-  name                           = "mdp-${random_string.name.result}"
-  resource_group_name            = azurerm_resource_group.this.name
-  enable_telemetry               = var.enable_telemetry
+  diagnostic_settings = {
+    all_logs = {
+      log_groups            = ["allLogs"]
+      metric_categories     = []
+      workspace_resource_id = azurerm_log_analytics_workspace.this.id
+    }
+  }
+  location            = azurerm_resource_group.this.location
+  name                = "mdp-${random_string.name.result}"
+  resource_group_name = azurerm_resource_group.this.name
+  enable_telemetry    = var.enable_telemetry
   organization_profile = {
     organizations = [{
       name     = var.azure_devops_organization_name

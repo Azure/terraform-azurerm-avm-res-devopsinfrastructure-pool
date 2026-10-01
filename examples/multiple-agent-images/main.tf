@@ -62,6 +62,7 @@ resource "azuredevops_git_repository" "this" {
   project_id     = azuredevops_project.this.id
   name           = local.repository_name
   default_branch = local.default_branch
+
   initialization {
     init_type = "Clean"
   }
@@ -124,6 +125,7 @@ resource "azuredevops_build_definition" "ubuntu_2204" {
 data "azuredevops_agent_queue" "this" {
   project_id = azuredevops_project.this.id
   name       = module.managed_devops_pool.name
+
   depends_on = [module.managed_devops_pool]
 }
 
@@ -213,12 +215,12 @@ module "managed_devops_pool" {
   depends_on = [azapi_resource_action.resource_provider_registration]
 }
 
-
-
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.5.2"
+
+  enable_telemetry = var.enable_telemetry
 }
 
 resource "random_integer" "region_index" {

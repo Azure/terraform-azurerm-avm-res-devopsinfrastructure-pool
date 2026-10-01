@@ -1,18 +1,29 @@
 locals {
-  agent_profile = merge(local.agent_profile_base, local.agent_profile_stateful)
+  agent_profile = merge(local.agent_profile_base, local.agent_profile_stateful, local.agent_profile_resource_predictions)
   # Workaround to avoid Payload API Spec Validation error, having gracePeriodTimeSpan and maxAgentLifetime in the agentProfile object, even though they had Null value.
   agent_profile_base = {
     kind                       = var.agent_profile_kind
     resourcePredictionsProfile = local.resource_prediction_profile
-    resourcePredictions = var.agent_profile_resource_prediction_profile == "Manual" ? {
-      timeZone = var.agent_profile_resource_predictions_manual.time_zone
-      daysData = var.agent_profile_resource_predictions_manual.days_data
-    } : null
   }
   agent_profile_resource_prediction_profile_automatic = {
     kind                 = var.agent_profile_resource_prediction_profile_automatic.kind
     predictionPreference = var.agent_profile_resource_prediction_profile_automatic.prediction_preference
   }
+  # resourcePredictions is part of the request body for the Manual profile only. For Off and
+  # Automatic the key is omitted entirely rather than sent as null, because in those modes the
+  # service owns the field: under Automatic it computes the standby agent schedule itself and
+  # writes the result back into resourcePredictions. A key present with a null value is still
+  # part of the body and is compared against the response, so sending null makes every plan
+  # report the field as changed outside Terraform and every apply overwrite the service's value
+  # with null again, which also recycles the agent fleet each time. Omitting the key leaves the
+  # field untracked, which is what Automatic needs. lifecycle ignore_changes cannot be used
+  # instead, because it is a meta-argument and cannot be made conditional on an input.
+  agent_profile_resource_predictions = var.agent_profile_resource_prediction_profile == "Manual" ? {
+    resourcePredictions = {
+      timeZone = var.agent_profile_resource_predictions_manual.time_zone
+      daysData = var.agent_profile_resource_predictions_manual.days_data
+    }
+  } : {}
   agent_profile_stateful = var.agent_profile_kind == "Stateful" ? {
     gracePeriodTimeSpan = var.agent_profile_grace_period_time_span
     maxAgentLifetime    = var.agent_profile_max_agent_lifetime

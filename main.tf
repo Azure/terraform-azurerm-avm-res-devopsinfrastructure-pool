@@ -47,15 +47,11 @@ resource "azapi_resource" "managed_devops_pool" {
       }
     }
   }
-  create_headers = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  read_headers   = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   retry = {
     error_message_regex = var.managed_devops_pool_retry_on_error
   }
   schema_validation_enabled = false
   tags                      = var.tags
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
   dynamic "identity" {
     for_each = local.managed_identities.system_assigned_user_assigned
@@ -65,6 +61,7 @@ resource "azapi_resource" "managed_devops_pool" {
       identity_ids = identity.value.user_assigned_resource_ids
     }
   }
+
   timeouts {
     create = try(var.managed_devops_pool_timeouts.create, null)
     delete = try(var.managed_devops_pool_timeouts.delete, null)
@@ -129,6 +126,7 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
       category_group = enabled_log.value
     }
   }
+
   dynamic "metric" {
     for_each = each.value.metric_categories
 

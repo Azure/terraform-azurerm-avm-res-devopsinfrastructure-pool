@@ -9,8 +9,8 @@ terraform {
 
   required_providers {
     azapi = {
-      source  = "azure/azapi"
-      version = "~> 2.0"
+      source  = "Azure/azapi"
+      version = "~> 2.12"
     }
     azuread = {
       source  = "hashicorp/azuread"
@@ -24,9 +24,13 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    modtm = {
+      source  = "registry.terraform.io/azure/modtm"
+      version = "~> 0.3"
+    }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6.3"
+      version = "~> 3.0"
     }
   }
 }
@@ -186,8 +190,9 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
 }
 
 module "virtual_network" {
-  source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "0.8.1"
+  source    = "Azure/avm-res-network-virtualnetwork/azurerm"
+  version   = "0.8.1"
+  providers = { modtm = modtm }
 
   address_space       = ["10.30.0.0/16"]
   location            = azurerm_resource_group.this.location
@@ -263,8 +268,9 @@ module "managed_devops_pool" {
 # Region helpers
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.5.2"
+  version = "0.13.0"
 
+  location         = var.location
   enable_telemetry = var.enable_telemetry
 }
 

@@ -38,6 +38,7 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    # tflint-ignore: terraform_unused_required_providers
     modtm = {
       source  = "registry.terraform.io/azure/modtm"
       version = "~> 0.3"
@@ -204,9 +205,8 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
 }
 
 module "virtual_network" {
-  source    = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version   = "0.8.1"
-  providers = { modtm = modtm }
+  source  = "Azure/avm-res-network-virtualnetwork/azurerm"
+  version = "0.8.1"
 
   address_space       = ["10.30.0.0/16"]
   location            = azurerm_resource_group.this.location
